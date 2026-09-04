@@ -130,8 +130,15 @@ object En : Strings {
 
     override fun stepIntroBody(step: VlsmStep.Intro): List<String> {
         val last = step.base + step.capacity - 1
+        val spare = step.capacity - step.demand
         val verdict = if (step.demand <= step.capacity) {
-            "${num(step.demand)} ≤ ${num(step.capacity)}, so the assignment fits — comfortably enough that ${addresses(step.capacity - step.demand)} will be left over."
+            // "fits, with 0 addresses left over" reads as a bug rather than as
+            // the perfectly packed plan it actually is.
+            if (spare == 0L) {
+                "${num(step.demand)} = ${num(step.capacity)}, so the assignment fits exactly, with nothing left over."
+            } else {
+                "${num(step.demand)} ≤ ${num(step.capacity)}, so the assignment fits, and ${addresses(spare)} will be left over."
+            }
         } else {
             "${num(step.demand)} > ${num(step.capacity)}, so the assignment does not fit. Something will have to be left out."
         }

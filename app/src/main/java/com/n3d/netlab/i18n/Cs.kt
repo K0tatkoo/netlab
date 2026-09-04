@@ -149,8 +149,13 @@ object Cs : Strings {
 
     override fun stepIntroBody(step: VlsmStep.Intro): List<String> {
         val last = step.base + step.capacity - 1
+        val spare = step.capacity - step.demand
         val verdict = if (step.demand <= step.capacity) {
-            "${num(step.demand)} ≤ ${num(step.capacity)}, zadání se tedy vejde — a ještě zbyde ${addresses(step.capacity - step.demand)}."
+            if (spare == 0L) {
+                "${num(step.demand)} = ${num(step.capacity)}, zadání se tedy vejde přesně a nezbyde nic."
+            } else {
+                "${num(step.demand)} ≤ ${num(step.capacity)}, zadání se tedy vejde — a ještě zbyde ${addresses(spare)}."
+            }
         } else {
             "${num(step.demand)} > ${num(step.capacity)}, zadání se tedy nevejde. Něco bude muset zůstat stranou."
         }
@@ -179,7 +184,7 @@ object Cs : Strings {
         return listOf(
             "${a.requirement.name} si žádá ${hosts(a.requirement.hosts.toLong())}.",
             "Přičti dvě: jedna adresa padne na adresu sítě a jedna na broadcast a ani jednu nemůže dostat stroj. Podsíť tedy musí pojmout ${a.requirement.hosts} + 2 = $needed adres.",
-            "Teď vezmi nejmenší mocninu dvojky, která je aspoň $needed. 2^${a.hostBits - 1} = ${num(smaller)} je málo; 2^${a.hostBits} = ${num(a.blockSize)} stačí. To je ${bits(a.hostBits)} prostoru pro uzly.",
+            "Teď vezmi nejmenší mocninu dvojky, která je aspoň $needed. 2^${a.hostBits - 1} = ${num(smaller)} je málo; 2^${a.hostBits} = ${num(a.blockSize)} stačí. To je ${bits(a.hostBits)} pro uzly.",
             "Prefix je to, co zbyde: 32 − ${a.hostBits} = /${a.prefix}, maska ${Ip.format(a.mask)}. Blok je široký ${addresses(a.blockSize)}, z toho ${num(a.usable)} použitelných — ${num(a.spare)} v rezervě.",
         )
     }
