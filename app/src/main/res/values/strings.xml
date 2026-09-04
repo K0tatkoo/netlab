@@ -1,0 +1,7 @@
+<resources>
+    <!-- The only string that must exist as a resource: the launcher label,
+         which the system reads before any Compose code runs. Every other
+         string in the app lives in i18n/Strings.kt so the language can be
+         switched from inside the app without restarting it. -->
+    <string name="app_name">NetLab</string>
+</resources>

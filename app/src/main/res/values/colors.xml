@@ -1,0 +1,6 @@
+<resources>
+    <!-- Mirrors the surface token in the sites' theme.css. Kept here only for
+         the window background during cold start; the Compose palette in
+         ui/theme/Palette.kt is the source of truth for everything drawn. -->
+    <color name="neu_bg">#E7ECF3</color>
+</resources>

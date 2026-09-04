@@ -1,0 +1,10 @@
+<resources>
+    <!-- Compose paints everything; this exists so the window background matches
+         the neumorphic surface during the cold-start frame instead of flashing
+         white. -->
+    <style name="Theme.NetLab" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/neu_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Four blocks of halving width: a /24 split into a /26, /27 and two /28s.
+     Kept inside the 72dp safe circle of the 108dp adaptive canvas so no
+     launcher mask clips a block off. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#6C5CE7"
+        android:pathData="M30,30 h48 a3,3 0 0 1 3,3 v8 a3,3 0 0 1 -3,3 h-48 a3,3 0 0 1 -3,-3 v-8 a3,3 0 0 1 3,-3 z" />
+    <path
+        android:fillColor="#6C5CE7"
+        android:pathData="M30,48 h21 a3,3 0 0 1 3,3 v8 a3,3 0 0 1 -3,3 h-21 a3,3 0 0 1 -3,-3 v-8 a3,3 0 0 1 3,-3 z" />
+    <path
+        android:fillColor="#8B7CFF"
+        android:pathData="M30,66 h7.5 a3,3 0 0 1 3,3 v8 a3,3 0 0 1 -3,3 h-7.5 a3,3 0 0 1 -3,-3 v-8 a3,3 0 0 1 3,-3 z" />
+    <path
+        android:fillColor="#8B7CFF"
+        android:pathData="M43.5,66 h7.5 a3,3 0 0 1 3,3 v8 a3,3 0 0 1 -3,3 h-7.5 a3,3 0 0 1 -3,-3 v-8 a3,3 0 0 1 3,-3 z" />
+</vector>

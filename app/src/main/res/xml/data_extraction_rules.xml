@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only a language choice, a theme choice and a practice score live here.
+     None of it is sensitive, and carrying it to a new phone is a convenience. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="sharedpref" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="sharedpref" path="." />
+    </device-transfer>
+</data-extraction-rules>
