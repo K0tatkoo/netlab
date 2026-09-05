@@ -1,7 +1,9 @@
 package com.n3d.netlab.i18n
 
+import com.n3d.netlab.core.AnalyzeStage
 import com.n3d.netlab.core.AnalyzeStep
 import com.n3d.netlab.core.Ip
+import com.n3d.netlab.core.VlsmStage
 import com.n3d.netlab.core.VlsmStep
 
 object En : Strings {
@@ -27,31 +29,33 @@ object En : Strings {
 
     // ---- navigation ----------------------------------------------------------
 
-    override val tabPractice = "Practice"
-    override val tabCalculator = "Calculator"
+    override val appName = "NetLab"
     override val tabLearn = "Learn"
+    override val tabExercise = "Exercise"
+    override val tabCalculator = "Calculator"
     override val tabSettings = "Settings"
 
     // ---- shared vocabulary ---------------------------------------------------
 
     override val actionCheck = "Check"
-    override val actionSolution = "Step by step"
-    override val actionHideSolution = "Hide solution"
+    override val actionSolution = "Full solution"
     override val actionNewExercise = "New exercise"
     override val actionNext = "Next"
     override val actionBack = "Back"
-    override val actionReset = "Reset"
     override val actionClose = "Close"
     override val actionAdd = "Add"
     override val actionShowAll = "All steps"
     override val actionOneByOne = "One at a time"
-    override val actionFillCorrect = "Fill in answers"
     override val actionClear = "Clear"
     override val actionConfirm = "Reset"
     override val actionCancel = "Cancel"
+    override val actionContinue = "Continue"
+    override val actionRetry = "Try again"
+    override val actionHint = "How do I do this?"
+    override val actionHideHint = "Hide"
+    override val actionShowAnswer = "Show me the answer"
+    override val actionReveal = "Show answer"
 
-    override val labelCorrect = "Correct"
-    override val labelWrong = "Wrong"
     override val labelExpected = "Answer"
     override val labelSolved = "Solved"
     override val labelStreak = "Streak"
@@ -96,9 +100,9 @@ object En : Strings {
     override val scopeMulticast = "Multicast"
     override val scopeReserved = "Reserved"
 
-    // ---- practice ------------------------------------------------------------
+    // ---- exercise ------------------------------------------------------------
 
-    override val practiceTitle = "Practice"
+    override val exerciseTitle = "Exercise"
     override val kindVlsm = "Split a network"
     override val kindAnalyze = "Analyse an address"
     override val kindVlsmHint = "Carve one network into subnets of different sizes"
@@ -111,22 +115,111 @@ object En : Strings {
     override val analyzePrompt = "Work out everything about the network this address belongs to."
     override val yourAnswer = "Your answer"
 
-    override fun requirement(name: String, hostCount: Int) = "$name — ${hosts(hostCount.toLong())}"
     override fun subnetTitle(name: String) = "Subnet $name"
+    override fun stageOf(index: Int, total: Int) = "Step $index of $total"
 
-    override val verdictPerfect = "All correct."
-    override fun verdictWrong(wrong: Int, total: Int) =
-        "$wrong of $total ${if (total == 1) "field is" else "fields are"} wrong."
-    override val verdictIncomplete = "Some fields are still empty."
-    override val verdictNothing = "Fill something in first."
-    override val notCheckedYet = "Not checked yet"
+    // ---- exercise stages -----------------------------------------------------
+
+    override fun vlsmStageTitle(stage: VlsmStage) = when (stage) {
+        VlsmStage.Order -> "Put them in order"
+        VlsmStage.Size -> "How big is each one?"
+        VlsmStage.Place -> "Where does each block go?"
+        VlsmStage.Done -> "Finished"
+    }
+
+    override fun vlsmStagePrompt(stage: VlsmStage) = when (stage) {
+        VlsmStage.Order -> "Drag the subnets so the one that needs the most hosts is at the top."
+        VlsmStage.Size -> "For each subnet work out the prefix. Hosts + 2, round up to a power of two, prefix = 32 − the exponent."
+        VlsmStage.Place -> "Start at the first free address and read each block off: network, first host, last host, broadcast."
+        VlsmStage.Done -> "Every stage is answered."
+    }
+
+    override fun vlsmStageHint(stage: VlsmStage) = when (stage) {
+        VlsmStage.Order -> listOf(
+            "A block of 2^n addresses may only begin at an address that is a multiple of 2^n. A block of 64 starts at 0, 64, 128 or 192 — never at 16.",
+            "Hand out a small subnet first and the next big one has nowhere aligned to land, so it has to skip forward and everything skipped over is stranded.",
+            "Going largest first, the next free address is always already aligned for whatever comes next.",
+        )
+        VlsmStage.Size -> listOf(
+            "Add 2 to the host count first: one address goes to the network address, one to the broadcast, and neither can be given to a machine.",
+            "Then climb the ladder 2, 4, 8, 16, 32, 64, 128… and stop at the first rung that is big enough. Round up, never to the nearest.",
+            "That exponent is the host bits h. The prefix is 32 − h. So 60 hosts → 62 addresses → 2^6 = 64 → /26.",
+        )
+        VlsmStage.Place -> listOf(
+            "The first subnet starts at the base network's own address. Each one after it starts at the previous broadcast + 1.",
+            "Broadcast = network + block size − 1. The −1 is because the network address itself is the first of the block's addresses.",
+            "First host = network + 1, last host = broadcast − 1.",
+        )
+        VlsmStage.Done -> emptyList()
+    }
+
+    override fun analyzeStageTitle(stage: AnalyzeStage) = when (stage) {
+        AnalyzeStage.Mask -> "The mask and the block size"
+        AnalyzeStage.Network -> "The network address"
+        AnalyzeStage.Broadcast -> "The broadcast address"
+        AnalyzeStage.Hosts -> "The hosts"
+        AnalyzeStage.Done -> "Finished"
+    }
+
+    override fun analyzeStagePrompt(stage: AnalyzeStage) = when (stage) {
+        AnalyzeStage.Mask -> "Write the prefix out as a dotted mask, and say how many addresses the block holds."
+        AnalyzeStage.Network -> "Round the given address down to the start of its block."
+        AnalyzeStage.Broadcast -> "The last address of that same block."
+        AnalyzeStage.Hosts -> "The two ends of the usable range, and how many addresses fit between them."
+        AnalyzeStage.Done -> "Every stage is answered."
+    }
+
+    override fun analyzeStageHint(stage: AnalyzeStage) = when (stage) {
+        AnalyzeStage.Mask -> listOf(
+            "The prefix is how many ones the mask starts with. Split it into octets: /26 is 8 + 8 + 8 + 2.",
+            "An octet of a mask can only be 0, 128, 192, 224, 240, 248, 252, 254 or 255 — one value per number of ones. Two ones is 192.",
+            "Block size = 2^h, where h = 32 − prefix. A /26 leaves 6 host bits, so 2^6 = 64 addresses.",
+        )
+        AnalyzeStage.Network -> listOf(
+            "Find the interesting octet — the one where the mask is neither 255 nor 0.",
+            "Magic number = 256 − that mask octet. Blocks begin at every multiple of it.",
+            "Round the address's value in that octet down to a multiple of the magic number, and set every octet to the right of it to 0.",
+        )
+        AnalyzeStage.Broadcast -> listOf(
+            "Broadcast = network + block size − 1.",
+            "By hand it is quicker in the interesting octet: add the magic number, subtract 1, and set every octet to the right to 255.",
+        )
+        AnalyzeStage.Hosts -> listOf(
+            "First host = network address + 1. The network address itself can never be given to a machine.",
+            "Last host = broadcast − 1, for the same reason at the other end.",
+            "Usable = 2^h − 2. Those are the two addresses you just skipped.",
+        )
+        AnalyzeStage.Done -> emptyList()
+    }
+
+    override val hintTitle = "The rule"
+    override val dragHandle = "Drag to reorder"
+    override val orderPrompt = "Largest at the top"
+    override val orderTopLabel = "Placed first"
+    override val orderBottomLabel = "Placed last"
+
+    override val stageCorrect = "Correct."
+    override val stageWrongOrder = "Not in order yet. The subnet needing the most hosts goes at the top."
+    override fun stageWrongFields(wrong: Int) =
+        "$wrong ${if (wrong == 1) "answer is" else "answers are"} wrong."
+    override val stageIncomplete = "Fill everything in first."
+    override val stageRevealed = "Answer shown. Read it, then continue."
+
+    override val resultTitle = "Exercise complete"
+    override val resultPerfect = "Solved with no mistakes."
+    override fun resultMistakes(count: Int) =
+        "Solved, with $count ${if (count == 1) "stage" else "stages"} that needed a second go."
+    override val resultPlan = "Your plan"
+    override val resultFree = "left over"
 
     // ---- walkthrough ---------------------------------------------------------
 
     override val solutionTitle = "Step by step"
+    override val ruleLabel = "The rule"
     override fun stepOf(index: Int, total: Int) = "Step $index of $total"
 
     override val stepIntroTitle = "What you were given"
+    override val stepIntroRule = "Capacity of the base network = 2^(32 − prefix). Cost of the assignment = every subnet rounded up to a power of two, added together."
 
     override fun stepIntroBody(step: VlsmStep.Intro): List<String> {
         val last = step.base + step.capacity - 1
@@ -151,12 +244,15 @@ object En : Strings {
     }
 
     override val stepOrderTitle = "Sort them, largest first"
+    override val stepOrderRule = "Always allocate largest first. A block of 2^n may only start at a multiple of 2^n, and descending order keeps the cursor aligned for free."
 
     override fun stepOrderBody(step: VlsmStep.Order): List<String> = listOf(
         "Order the subnets by size, biggest first: ${step.ordered.joinToString(", ") { "${it.name} (${num(it.hosts.toLong())})" }}.",
         "This is the method, not housekeeping. A block of 2^n addresses may only begin at an address that is a multiple of 2^n — a /26 at 0, 64, 128 or 192, never at 16.",
         "Hand out a small subnet first and the next big one has no aligned place to start, so you have to skip forward and everything you skipped is lost. Going largest first, the next free address is already aligned for whatever comes next, every time.",
     )
+
+    override val stepSizeRule = "hosts + 2 → round UP to the next power of two 2^h → prefix = 32 − h."
 
     override fun stepSizeTitle(step: VlsmStep.Size) = "${subnetTitle(step.alloc.requirement.name)} — how big?"
 
@@ -171,6 +267,8 @@ object En : Strings {
             "The prefix is whatever is left over: 32 − ${a.hostBits} = /${a.prefix}, mask ${Ip.format(a.mask)}. The block is ${addresses(a.blockSize)} wide, ${num(a.usable)} of them usable — ${num(a.spare)} to spare.",
         )
     }
+
+    override val stepPlaceRule = "Network = the first free address (already aligned). Broadcast = network + block size − 1. First = network + 1, last = broadcast − 1."
 
     override fun stepPlaceTitle(step: VlsmStep.Place) = "${subnetTitle(step.alloc.requirement.name)} — where?"
 
@@ -193,6 +291,8 @@ object En : Strings {
         )
     }
 
+    override val stepOverflowRule = "A block cannot straddle the end of the base network. If what is left is smaller than the block, the subnet cannot be placed at all."
+
     override fun stepOverflowTitle(step: VlsmStep.Overflow) =
         "${subnetTitle(step.requirement.name)} does not fit"
 
@@ -203,6 +303,7 @@ object En : Strings {
     )
 
     override val stepVerifyTitle = "Check the plan"
+    override val stepVerifyRule = "Every network address is a multiple of its own block size, and each broadcast is exactly one below the next network address."
 
     override fun stepVerifyBody(step: VlsmStep.Verify): List<String> {
         val p = step.plan
@@ -217,6 +318,15 @@ object En : Strings {
         lines += "Inside the subnets, ${num(p.wasted)} usable addresses are not claimed by anyone. That is the price of rounding every subnet up to a power of two, and it is normal."
         lines += "Two things make the plan correct, and both are worth checking by hand: every network address is a multiple of its own block size, and no two ranges overlap. Reading down the list, each subnet's broadcast address is exactly one less than the next subnet's network address."
         return lines
+    }
+
+    override fun analyzeStepRule(step: AnalyzeStep): String = when (step) {
+        is AnalyzeStep.Mask -> "prefix ones, then zeros to 32, cut into four octets. An octet of a mask is only ever 0, 128, 192, 224, 240, 248, 252, 254 or 255."
+        is AnalyzeStep.Magic -> "magic number = 256 − the mask octet that is neither 255 nor 0. Blocks begin at every multiple of it."
+        is AnalyzeStep.Network -> "Round the interesting octet down to a multiple of the magic number; zero every octet to its right."
+        is AnalyzeStep.Broadcast -> "broadcast = network + block size − 1; to the right of the interesting octet, everything is 255."
+        is AnalyzeStep.Hosts -> "first = network + 1, last = broadcast − 1."
+        is AnalyzeStep.Count -> "usable = 2^h − 2, where h = 32 − prefix."
     }
 
     override fun analyzeStepTitle(step: AnalyzeStep): String = when (step) {
@@ -347,7 +457,13 @@ object En : Strings {
     // ---- learn ---------------------------------------------------------------
 
     override val learnTitle = "Learn"
-    override val lessons = enLessons
+    override val learnIntro = "Nine chapters, from \"what is an IP address\" to a full VLSM plan. Everything is done with pen, paper and your head — no calculator anywhere."
+    override val learnStartHere = "Start here"
+    override val course = enCourse
+    override fun chapterOf(index: Int, total: Int) = "Chapter $index of $total"
+    override val chapterDone = "Chapter finished"
+    override val chapterDoneBody = "Try the next one, or go to Exercise and do one for real."
+    override val checkYourself = "Check yourself"
 
     // ---- settings ------------------------------------------------------------
 
@@ -357,11 +473,9 @@ object En : Strings {
     override val themeSystem = "System"
     override val themeLight = "Light"
     override val themeDark = "Dark"
-    override val settingDefaults = "Practice"
+    override val settingDefaults = "Exercise"
     override val settingDefaultKind = "Exercise type"
     override val settingDefaultDifficulty = "Difficulty"
-    override val settingShortFields = "Short answers"
-    override val settingShortFieldsHint = "Ask only for the network address and the prefix, not the whole range."
     override val settingStats = "Statistics"
     override val settingResetStats = "Reset statistics"
     override val settingResetStatsHint = "Clears the solved count and both streaks."

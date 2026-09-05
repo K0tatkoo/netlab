@@ -1,181 +1,276 @@
 package com.n3d.netlab.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.n3d.netlab.AppViewModel
-import com.n3d.netlab.i18n.Block
-import com.n3d.netlab.i18n.Lesson
+import com.n3d.netlab.i18n.Chapter
+import com.n3d.netlab.i18n.Page
 import com.n3d.netlab.i18n.Strings
 import com.n3d.netlab.ui.components.Banner
-import com.n3d.netlab.ui.components.BitsLegend
-import com.n3d.netlab.ui.components.BitsStrip
-import com.n3d.netlab.ui.components.Dot
-import com.n3d.netlab.ui.components.FormulaBlock
-import com.n3d.netlab.ui.components.InfoRow
+import com.n3d.netlab.ui.components.ButtonTone
+import com.n3d.netlab.ui.components.LessonBlock
+import com.n3d.netlab.ui.components.NeuButton
 import com.n3d.netlab.ui.components.NeuCard
+import com.n3d.netlab.ui.components.NeuIconButton
 import com.n3d.netlab.ui.theme.LocalNeu
 import com.n3d.netlab.ui.theme.NeuDepths
-import com.n3d.netlab.ui.theme.NeuMotion
 import com.n3d.netlab.ui.theme.NeuRadius
 import com.n3d.netlab.ui.theme.NeuType
 import com.n3d.netlab.ui.theme.neuInset
 
+/**
+ * The course.
+ *
+ * Two screens, not one: a list of chapters, and a reader that shows exactly one
+ * page at a time. The old version was six accordions, which let a reader flick
+ * past three screens of binary in one gesture and then wonder why the mask
+ * chapter made no sense. Paging is the only thing that makes the material
+ * cumulative in practice as well as on paper.
+ */
 @Composable
 fun LearnScreen(vm: AppViewModel) {
     val s = vm.strings
-    val neu = LocalNeu.current
-    // One open at a time. Six lessons all expanded is a scroll bar the size of
-    // a grain of rice and no sense of where you are in the material.
-    var openIndex by rememberSaveable { mutableIntStateOf(-1) }
+    var openChapter by rememberSaveable { mutableIntStateOf(-1) }
 
+    val chapter = s.course.getOrNull(openChapter)
+    if (chapter != null) {
+        ChapterReader(
+            chapter = chapter,
+            number = openChapter + 1,
+            total = s.course.size,
+            s = s,
+            onClose = { openChapter = -1 },
+            onNextChapter = if (openChapter < s.course.lastIndex) {
+                { openChapter += 1 }
+            } else {
+                null
+            },
+        )
+    } else {
+        ChapterList(s, onOpen = { openChapter = it })
+    }
+}
+
+@Composable
+internal fun ChapterList(s: Strings, onOpen: (Int) -> Unit) {
+    val neu = LocalNeu.current
     LazyColumn(
         Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
-            Text(
-                s.learnTitle,
-                style = NeuType.Title,
-                color = neu.text,
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
-            )
+            Column(Modifier.padding(horizontal = 4.dp, vertical = 6.dp)) {
+                Text(s.learnIntro, style = NeuType.Small.copy(lineHeight = 18.sp), color = neu.faint)
+            }
         }
-        itemsIndexed(s.lessons) { index, lesson ->
-            LessonCard(
-                lesson = lesson,
-                index = index + 1,
-                expanded = openIndex == index,
-                s = s,
-                onToggle = { openIndex = if (openIndex == index) -1 else index },
-            )
+        itemsIndexed(s.course) { index, chapter ->
+            NeuCard(onClick = { onOpen(index) }, padding = 16.dp) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(32.dp).neuInset(NeuRadius.Pill, NeuDepths.InsetSm),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            "${index + 1}",
+                            style = NeuType.Label.copy(fontWeight = FontWeight.Bold),
+                            color = neu.accent,
+                        )
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            chapter.title,
+                            style = NeuType.Label.copy(fontWeight = FontWeight.Bold, fontSize = 15.5.sp),
+                            color = neu.text,
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(chapter.summary, style = NeuType.Small, color = neu.faint)
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Icon(
+                        Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = neu.faint,
+                    )
+                }
+                if (index == 0) {
+                    Spacer(Modifier.height(10.dp))
+                    Banner(s.learnStartHere, neu.accent)
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun LessonCard(
-    lesson: Lesson,
-    index: Int,
-    expanded: Boolean,
+internal fun ChapterReader(
+    chapter: Chapter,
+    number: Int,
+    total: Int,
     s: Strings,
-    onToggle: () -> Unit,
+    onClose: () -> Unit,
+    onNextChapter: (() -> Unit)?,
 ) {
     val neu = LocalNeu.current
-    NeuCard(onClick = onToggle, padding = 18.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.width(28.dp).height(28.dp).neuInset(NeuRadius.Pill, NeuDepths.InsetSm),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    index.toString(),
-                    style = NeuType.Small.copy(fontWeight = FontWeight.Bold),
-                    color = neu.accent,
-                )
-            }
-            Spacer(Modifier.width(12.dp))
+    // Reset to page one whenever a different chapter is opened, rather than
+    // dropping the reader into the middle of material they have not read.
+    var pageIndex by rememberSaveable(chapter.title) { mutableIntStateOf(0) }
+    val lastPage = chapter.pages.lastIndex
+    val page = chapter.pages.getOrNull(pageIndex.coerceIn(0, lastPage)) ?: return
+    val atEnd = pageIndex >= lastPage
+
+    Column(Modifier.fillMaxSize().background(neu.bg)) {
+        Row(
+            Modifier.fillMaxWidth().padding(start = 20.dp, end = 14.dp, top = 10.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    lesson.title,
-                    style = NeuType.Label.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
-                    color = neu.text,
+                    s.chapterOf(number, total),
+                    style = NeuType.Small,
+                    color = neu.faint,
                 )
-                Text(lesson.summary, style = NeuType.Small, color = neu.faint)
+                Text(chapter.title, style = NeuType.Title, color = neu.text, maxLines = 2)
             }
-            Icon(
-                Icons.Rounded.ExpandMore,
-                contentDescription = null,
-                tint = neu.faint,
-                modifier = Modifier.rotate(if (expanded) 180f else 0f),
-            )
+            Spacer(Modifier.width(8.dp))
+            NeuIconButton(Icons.Rounded.Close, s.actionClose, onClose)
         }
 
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(tween(NeuMotion.SlideMs, easing = NeuMotion.Ease)) + fadeIn(tween(NeuMotion.FadeMs)),
-            exit = shrinkVertically(tween(NeuMotion.FadeMs)) + fadeOut(tween(120)),
+        PageProgress(chapter.pages.size, pageIndex)
+
+        val listState = rememberLazyListState()
+        LaunchedEffect(pageIndex) { listState.scrollToItem(0) }
+
+        LazyColumn(
+            Modifier.weight(1f),
+            state = listState,
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Column(Modifier.fillMaxWidth().padding(top = 16.dp)) {
-                lesson.body.forEach { block ->
-                    LessonBlock(block, s)
-                    Spacer(Modifier.height(12.dp))
-                }
+            item { PageCard(page, s) }
+            if (atEnd) {
+                item { ChapterEnd(s, onNextChapter, onClose) }
             }
+        }
+
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            NeuButton(
+                text = s.actionBack,
+                onClick = { pageIndex = (pageIndex - 1).coerceAtLeast(0) },
+                icon = Icons.AutoMirrored.Rounded.ArrowBack,
+                enabled = pageIndex > 0,
+                modifier = Modifier.weight(1f),
+                fill = true,
+            )
+            NeuButton(
+                text = if (atEnd) s.actionClose else s.actionNext,
+                onClick = { if (atEnd) onClose() else pageIndex += 1 },
+                icon = if (atEnd) null else Icons.AutoMirrored.Rounded.ArrowForward,
+                tone = ButtonTone.Accent,
+                modifier = Modifier.weight(1f),
+                fill = true,
+            )
         }
     }
 }
 
 @Composable
-private fun LessonBlock(block: Block, s: Strings) {
+private fun PageCard(page: Page, s: Strings) {
     val neu = LocalNeu.current
-    when (block) {
-        is Block.Para -> Text(
-            block.text,
-            style = NeuType.Body.copy(lineHeight = 22.sp),
-            color = neu.dim,
+    NeuCard(padding = 18.dp) {
+        Text(
+            page.title,
+            style = NeuType.Title.copy(fontSize = 18.sp),
+            color = neu.text,
         )
-
-        is Block.Bullets -> Column(Modifier.fillMaxWidth()) {
-            block.items.forEach { item ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                    Box(Modifier.padding(top = 7.dp)) { Dot(neu.accent, 6.dp) }
-                    Spacer(Modifier.width(10.dp))
-                    Text(item, style = NeuType.Small.copy(lineHeight = 19.sp), color = neu.dim)
-                }
-            }
+        Spacer(Modifier.height(14.dp))
+        page.blocks.forEachIndexed { index, block ->
+            if (index > 0) Spacer(Modifier.height(14.dp))
+            LessonBlock(block, s)
         }
+    }
+}
 
-        is Block.Table -> Box(
-            Modifier
-                .fillMaxWidth()
-                .neuInset(NeuRadius.Md, NeuDepths.InsetSm)
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-        ) {
-            Column {
-                block.rows.forEach { (label, value) -> InfoRow(label, value) }
-            }
-        }
+@Composable
+private fun ChapterEnd(s: Strings, onNextChapter: (() -> Unit)?, onClose: () -> Unit) {
+    val neu = LocalNeu.current
+    NeuCard(padding = 18.dp) {
+        Text(
+            s.chapterDone,
+            style = NeuType.Label.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
+            color = neu.ok,
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(s.chapterDoneBody, style = NeuType.Small.copy(lineHeight = 18.sp), color = neu.dim)
+        Spacer(Modifier.height(14.dp))
+        NeuButton(
+            text = if (onNextChapter != null) s.actionNext else s.actionClose,
+            onClick = onNextChapter ?: onClose,
+            tone = ButtonTone.Accent,
+            fill = true,
+        )
+    }
+}
 
-        is Block.Formula -> FormulaBlock(block.text)
-
-        is Block.Note -> Banner(block.text, neu.warn)
-
-        is Block.Bits -> Column(Modifier.fillMaxWidth()) {
-            BitsStrip(block.bits, block.networkBits, caption = block.caption)
-            Spacer(Modifier.height(8.dp))
-            BitsLegend(s.bitsLegendNetwork, s.bitsLegendHost)
+@Composable
+private fun PageProgress(total: Int, current: Int) {
+    val neu = LocalNeu.current
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(total) { i ->
+            val filled = i <= current
+            val alpha by animateFloatAsState(if (filled) 1f else 0.22f, tween(220), label = "page")
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(NeuRadius.Pill))
+                    .background(neu.accent.copy(alpha = alpha)),
+            )
         }
     }
 }

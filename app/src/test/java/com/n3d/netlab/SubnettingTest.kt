@@ -1,11 +1,18 @@
 package com.n3d.netlab
 
+import com.n3d.netlab.core.AnalyzeField
+import com.n3d.netlab.core.AnalyzeStage
 import com.n3d.netlab.core.Difficulty
 import com.n3d.netlab.core.Generator
 import com.n3d.netlab.core.Ip
 import com.n3d.netlab.core.Requirement
 import com.n3d.netlab.core.Vlsm
+import com.n3d.netlab.core.VlsmField
+import com.n3d.netlab.core.VlsmStage
+import com.n3d.netlab.core.fields
+import com.n3d.netlab.core.orderedLargestFirst
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -213,5 +220,48 @@ class VlsmTest {
                 assertTrue(task.address in task.network..task.broadcast)
             }
         }
+    }
+
+    @Test
+    fun `the sorting stage accepts any order of equally sized subnets`() {
+        val a = Requirement("A", 60)
+        val b = Requirement("B", 30)
+        val c = Requirement("C", 30)
+        val d = Requirement("D", 7)
+
+        assertTrue(orderedLargestFirst(listOf(a, b, c, d)))
+        // B and C ask for the same number of hosts, so either may go first —
+        // marking one of them wrong would be testing a tie-breaking rule that
+        // does not exist.
+        assertTrue(orderedLargestFirst(listOf(a, c, b, d)))
+        assertFalse(orderedLargestFirst(listOf(d, a, b, c)))
+        assertFalse(orderedLargestFirst(listOf(a, d, b, c)))
+        // One subnet on its own, and none at all, are both trivially sorted.
+        assertTrue(orderedLargestFirst(listOf(a)))
+        assertTrue(orderedLargestFirst(emptyList()))
+    }
+
+    @Test
+    fun `every answer field is asked for by exactly one stage`() {
+        val asked = AnalyzeStage.entries.flatMap { it.fields }
+        assertEquals(
+            "an analyze field asked for twice, or not at all",
+            AnalyzeField.entries.toSet(),
+            asked.toSet(),
+        )
+        assertEquals("an analyze field appears in two stages", asked.size, asked.toSet().size)
+
+        val vlsmAsked = VlsmStage.entries.flatMap { it.fields }
+        assertEquals(VlsmField.entries.toSet(), vlsmAsked.toSet())
+        assertEquals(vlsmAsked.size, vlsmAsked.toSet().size)
+    }
+
+    @Test
+    fun `generated assignments are not already in order`() {
+        // The sorting stage would be a no-op if the generator handed the
+        // requirements over pre-sorted, so at least some of them must not be.
+        val random = Random(99)
+        val shuffled = (1..200).count { !orderedLargestFirst(Generator.vlsm(Difficulty.Easy, random).requirements) }
+        assertTrue("the generator never shuffles the requirements", shuffled > 100)
     }
 }

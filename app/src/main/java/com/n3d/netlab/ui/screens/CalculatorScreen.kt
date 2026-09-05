@@ -114,15 +114,6 @@ fun CalculatorScreen(vm: AppViewModel) {
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
-            Text(
-                s.calculatorTitle,
-                style = NeuType.Title,
-                color = neu.text,
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
-            )
-        }
-
-        item {
             NeuSegmented(
                 options = CalcMode.entries,
                 selected = mode,

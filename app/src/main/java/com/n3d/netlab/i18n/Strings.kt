@@ -1,6 +1,8 @@
 package com.n3d.netlab.i18n
 
+import com.n3d.netlab.core.AnalyzeStage
 import com.n3d.netlab.core.AnalyzeStep
+import com.n3d.netlab.core.VlsmStage
 import com.n3d.netlab.core.VlsmStep
 
 enum class Lang(val code: String, val flag: String) {
@@ -13,20 +15,73 @@ fun stringsFor(lang: Lang): Strings = when (lang) {
     Lang.Cs -> Cs
 }
 
-/** A lesson in the Learn tab. */
-data class Lesson(val title: String, val summary: String, val body: List<Block>)
+// ---------------------------------------------------------------------------
+// The course
+// ---------------------------------------------------------------------------
+
+/**
+ * One screenful of the course — one idea, read and then paged past.
+ *
+ * A page rather than a scrolling chapter because the material is cumulative:
+ * page 4 assumes page 3, and a reader who can scroll past three screens of
+ * binary in one flick will do exactly that and then not understand the mask.
+ */
+data class Page(val title: String, val blocks: List<Block>)
+
+data class Chapter(val title: String, val summary: String, val pages: List<Page>)
 
 sealed interface Block {
     data class Para(val text: String) : Block
+
+    /** A sub-heading inside a page. */
+    data class Heading(val text: String) : Block
+
     data class Bullets(val items: List<String>) : Block
+
     data class Table(val rows: List<Pair<String, String>>) : Block
-    /** Monospaced, highlighted — one line of arithmetic. */
+
+    /** One line of arithmetic, centred and set apart. */
     data class Formula(val text: String) : Block
-    /** A caveat or exam-trap warning. */
+
+    /** A caveat or exam trap. */
     data class Note(val text: String) : Block
-    /** A 32-bit strip drawn with the first `networkBits` bits tinted. */
+
+    /** A shortcut worth keeping — the same shape as [Note], a friendlier colour. */
+    data class Tip(val text: String) : Block
+
+    /** A 32-bit strip with the first `networkBits` bits tinted. */
     data class Bits(val caption: String, val bits: String, val networkBits: Int) : Block
+
+    /**
+     * A worked calculation, left-aligned and monospaced over several lines.
+     *
+     * This is the block the whole Learn section exists for: the arithmetic
+     * written out the way it would be on paper, one operation per line, with
+     * nothing skipped because it is "obvious".
+     */
+    data class Work(val caption: String?, val lines: List<String>) : Block
+
+    /** A numbered procedure. Each step is a general rule; the work is optional. */
+    data class Recipe(val items: List<RecipeStep>) : Block
+
+    /** A network drawn to scale and split into labelled blocks. */
+    data class Split(val caption: String, val capacity: Long, val parts: List<SplitPart>) : Block
+
+    /** The 128 64 32 16 8 4 2 1 columns, with one octet's bits switched on. */
+    data class PlaceValue(val caption: String, val value: Int) : Block
+
+    /** A question the reader answers in their head, then taps to check. */
+    data class Check(val question: String, val answer: String, val why: String? = null) : Block
 }
+
+/**
+ * `rule` is the sentence that is true for every exercise; `work` is what it
+ * looks like on this one. Keeping them in one object is what makes the
+ * walkthrough teach a method rather than reveal an answer.
+ */
+data class RecipeStep(val rule: String, val work: String? = null)
+
+data class SplitPart(val label: String, val size: Long, val detail: String, val free: Boolean = false)
 
 /**
  * Every user-visible word in the app.
@@ -56,31 +111,34 @@ interface Strings {
 
     // ---- navigation ----------------------------------------------------------
 
-    val tabPractice: String
-    val tabCalculator: String
+    val appName: String
     val tabLearn: String
+    val tabExercise: String
+    val tabCalculator: String
     val tabSettings: String
 
     // ---- shared vocabulary ---------------------------------------------------
 
     val actionCheck: String
     val actionSolution: String
-    val actionHideSolution: String
     val actionNewExercise: String
     val actionNext: String
     val actionBack: String
-    val actionReset: String
     val actionClose: String
     val actionAdd: String
     val actionShowAll: String
     val actionOneByOne: String
-    val actionFillCorrect: String
     val actionClear: String
     val actionConfirm: String
     val actionCancel: String
+    val actionContinue: String
+    val actionRetry: String
+    val actionHint: String
+    val actionHideHint: String
+    val actionShowAnswer: String
+    /** Uncovers the answer to a Check block in the course. */
+    val actionReveal: String
 
-    val labelCorrect: String
-    val labelWrong: String
     val labelExpected: String
     val labelSolved: String
     val labelStreak: String
@@ -125,9 +183,9 @@ interface Strings {
     val scopeMulticast: String
     val scopeReserved: String
 
-    // ---- practice ------------------------------------------------------------
+    // ---- exercise ------------------------------------------------------------
 
-    val practiceTitle: String
+    val exerciseTitle: String
     val kindVlsm: String
     val kindAnalyze: String
     val kindVlsmHint: String
@@ -140,40 +198,68 @@ interface Strings {
     val analyzePrompt: String
     val yourAnswer: String
 
-    fun requirement(name: String, hostCount: Int): String
     fun subnetTitle(name: String): String
+    fun stageOf(index: Int, total: Int): String
 
-    val verdictPerfect: String
-    fun verdictWrong(wrong: Int, total: Int): String
-    val verdictIncomplete: String
-    val verdictNothing: String
-    val notCheckedYet: String
+    /** Stage headings and the sentence that says what to do on them. */
+    fun vlsmStageTitle(stage: VlsmStage): String
+    fun vlsmStagePrompt(stage: VlsmStage): String
+    fun vlsmStageHint(stage: VlsmStage): List<String>
+    fun analyzeStageTitle(stage: AnalyzeStage): String
+    fun analyzeStagePrompt(stage: AnalyzeStage): String
+    fun analyzeStageHint(stage: AnalyzeStage): List<String>
+
+    val hintTitle: String
+    val dragHandle: String
+    val orderPrompt: String
+    val orderTopLabel: String
+    val orderBottomLabel: String
+
+    val stageCorrect: String
+    val stageWrongOrder: String
+    fun stageWrongFields(wrong: Int): String
+    val stageIncomplete: String
+    val stageRevealed: String
+
+    val resultTitle: String
+    val resultPerfect: String
+    fun resultMistakes(count: Int): String
+    val resultPlan: String
+    val resultFree: String
 
     // ---- walkthrough ---------------------------------------------------------
 
     val solutionTitle: String
+    val ruleLabel: String
     fun stepOf(index: Int, total: Int): String
 
     val stepIntroTitle: String
     fun stepIntroBody(step: VlsmStep.Intro): List<String>
+    val stepIntroRule: String
 
     val stepOrderTitle: String
     fun stepOrderBody(step: VlsmStep.Order): List<String>
+    val stepOrderRule: String
 
     fun stepSizeTitle(step: VlsmStep.Size): String
     fun stepSizeBody(step: VlsmStep.Size): List<String>
+    val stepSizeRule: String
 
     fun stepPlaceTitle(step: VlsmStep.Place): String
     fun stepPlaceBody(step: VlsmStep.Place): List<String>
+    val stepPlaceRule: String
 
     fun stepOverflowTitle(step: VlsmStep.Overflow): String
     fun stepOverflowBody(step: VlsmStep.Overflow): List<String>
+    val stepOverflowRule: String
 
     val stepVerifyTitle: String
     fun stepVerifyBody(step: VlsmStep.Verify): List<String>
+    val stepVerifyRule: String
 
     fun analyzeStepTitle(step: AnalyzeStep): String
     fun analyzeStepBody(step: AnalyzeStep): List<String>
+    fun analyzeStepRule(step: AnalyzeStep): String
 
     /** Caption over the 32-bit strip: "first 26 bits = network". */
     fun bitsCaption(networkBits: Int): String
@@ -216,7 +302,13 @@ interface Strings {
     // ---- learn ---------------------------------------------------------------
 
     val learnTitle: String
-    val lessons: List<Lesson>
+    val learnIntro: String
+    val learnStartHere: String
+    val course: List<Chapter>
+    fun chapterOf(index: Int, total: Int): String
+    val chapterDone: String
+    val chapterDoneBody: String
+    val checkYourself: String
 
     // ---- settings ------------------------------------------------------------
 
@@ -229,8 +321,6 @@ interface Strings {
     val settingDefaults: String
     val settingDefaultKind: String
     val settingDefaultDifficulty: String
-    val settingShortFields: String
-    val settingShortFieldsHint: String
     val settingStats: String
     val settingResetStats: String
     val settingResetStatsHint: String

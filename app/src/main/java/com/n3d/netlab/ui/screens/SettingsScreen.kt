@@ -22,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.n3d.netlab.AppViewModel
@@ -34,7 +33,6 @@ import com.n3d.netlab.ui.components.ButtonTone
 import com.n3d.netlab.ui.components.NeuButton
 import com.n3d.netlab.ui.components.NeuCard
 import com.n3d.netlab.ui.components.NeuSegmented
-import com.n3d.netlab.ui.components.NeuSwitch
 import com.n3d.netlab.ui.components.Overlay
 import com.n3d.netlab.ui.components.SectionLabel
 import com.n3d.netlab.ui.theme.LocalNeu
@@ -55,15 +53,6 @@ fun SettingsScreen(vm: AppViewModel) {
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            item {
-                Text(
-                    s.settingsTitle,
-                    style = NeuType.Title,
-                    color = neu.text,
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
-                )
-            }
-
             item {
                 NeuCard {
                     SectionLabel(s.settingLanguage)
@@ -116,22 +105,6 @@ fun SettingsScreen(vm: AppViewModel) {
                             }
                         },
                     )
-                    Spacer(Modifier.height(18.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f).padding(end = 12.dp)) {
-                            Text(
-                                s.settingShortFields,
-                                style = NeuType.Label.copy(fontWeight = FontWeight.Bold),
-                                color = neu.text,
-                            )
-                            Text(
-                                s.settingShortFieldsHint,
-                                style = NeuType.Small.copy(lineHeight = 16.sp),
-                                color = neu.faint,
-                            )
-                        }
-                        NeuSwitch(vm.settings.shortFields, vm::setShortFields)
-                    }
                 }
             }
 

@@ -116,7 +116,7 @@ enum class FieldState { Empty, Correct, Wrong }
 
 enum class VlsmField { Network, Prefix, FirstHost, LastHost, Broadcast }
 
-enum class AnalyzeField { Network, Mask, FirstHost, LastHost, Broadcast, Hosts }
+enum class AnalyzeField { Mask, BlockSize, Network, Broadcast, FirstHost, LastHost, Hosts }
 
 data class SubnetAnswer(
     val network: String = "",
@@ -148,6 +148,7 @@ data class SubnetAnswer(
 data class AnalyzeAnswer(
     val network: String = "",
     val mask: String = "",
+    val blockSize: String = "",
     val firstHost: String = "",
     val lastHost: String = "",
     val broadcast: String = "",
@@ -156,6 +157,7 @@ data class AnalyzeAnswer(
     operator fun get(field: AnalyzeField): String = when (field) {
         AnalyzeField.Network -> network
         AnalyzeField.Mask -> mask
+        AnalyzeField.BlockSize -> blockSize
         AnalyzeField.FirstHost -> firstHost
         AnalyzeField.LastHost -> lastHost
         AnalyzeField.Broadcast -> broadcast
@@ -165,6 +167,7 @@ data class AnalyzeAnswer(
     fun with(field: AnalyzeField, value: String): AnalyzeAnswer = when (field) {
         AnalyzeField.Network -> copy(network = value)
         AnalyzeField.Mask -> copy(mask = value)
+        AnalyzeField.BlockSize -> copy(blockSize = value)
         AnalyzeField.FirstHost -> copy(firstHost = value)
         AnalyzeField.LastHost -> copy(lastHost = value)
         AnalyzeField.Broadcast -> copy(broadcast = value)
@@ -216,6 +219,7 @@ object Grader {
     fun grade(answer: AnalyzeAnswer, task: AnalyzeTask): Map<AnalyzeField, FieldState> = mapOf(
         AnalyzeField.Network to addressField(answer.network, task.network),
         AnalyzeField.Mask to addressField(answer.mask, task.mask),
+        AnalyzeField.BlockSize to numberField(answer.blockSize, task.blockSize),
         AnalyzeField.FirstHost to addressField(answer.firstHost, task.firstHost ?: task.network),
         AnalyzeField.LastHost to addressField(answer.lastHost, task.lastHost ?: task.broadcast),
         AnalyzeField.Broadcast to addressField(answer.broadcast, task.broadcast),
@@ -233,6 +237,7 @@ object Grader {
     fun expected(field: AnalyzeField, task: AnalyzeTask): String = when (field) {
         AnalyzeField.Network -> Ip.format(task.network)
         AnalyzeField.Mask -> Ip.format(task.mask)
+        AnalyzeField.BlockSize -> task.blockSize.toString()
         AnalyzeField.FirstHost -> task.firstHost?.let { Ip.format(it) } ?: "—"
         AnalyzeField.LastHost -> task.lastHost?.let { Ip.format(it) } ?: "—"
         AnalyzeField.Broadcast -> Ip.format(task.broadcast)

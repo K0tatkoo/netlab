@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
@@ -234,7 +235,12 @@ fun StepCardView(card: StepCard, s: Strings, number: String? = null) {
             )
         }
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(12.dp))
+
+        if (card.rule != null) {
+            RuleLine(card.rule, s)
+            Spacer(Modifier.height(12.dp))
+        }
 
         card.body.forEach { paragraph ->
             Text(
@@ -271,6 +277,28 @@ fun StepCardView(card: StepCard, s: Strings, number: String? = null) {
                 }
             }
         }
+    }
+}
+
+/**
+ * The general rule, printed above this step's own numbers.
+ *
+ * Without it the walkthrough reveals an answer; with it, the answer is an
+ * instance of something the learner can carry to the next exercise.
+ */
+@Composable
+private fun RuleLine(rule: String, s: Strings) {
+    val neu = LocalNeu.current
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(NeuRadius.Sm))
+            .background(neu.accent.copy(alpha = 0.10f))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Text(s.ruleLabel.uppercase(), style = NeuType.Section, color = neu.accent)
+        Spacer(Modifier.height(4.dp))
+        Text(rule, style = NeuType.Small.copy(lineHeight = 18.sp), color = neu.dim)
     }
 }
 

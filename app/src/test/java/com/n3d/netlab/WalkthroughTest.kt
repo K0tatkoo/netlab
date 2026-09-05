@@ -5,8 +5,11 @@ import com.n3d.netlab.core.Difficulty
 import com.n3d.netlab.core.Generator
 import com.n3d.netlab.core.Ip
 import com.n3d.netlab.core.Requirement
+import com.n3d.netlab.core.AnalyzeStage
 import com.n3d.netlab.core.Vlsm
+import com.n3d.netlab.core.VlsmStage
 import com.n3d.netlab.core.steps
+import com.n3d.netlab.i18n.Block
 import com.n3d.netlab.i18n.Cs
 import com.n3d.netlab.i18n.En
 import com.n3d.netlab.i18n.Lang
@@ -134,15 +137,126 @@ class WalkthroughTest {
     }
 
     @Test
-    fun `both languages carry the same lessons and are reachable by tag`() {
-        assertEquals(En.lessons.size, Cs.lessons.size)
+    fun `the two courses are structurally identical`() {
         assertEquals(En, stringsFor(Lang.En))
         assertEquals(Cs, stringsFor(Lang.Cs))
-        listOf<Strings>(En, Cs).forEach { s ->
-            s.lessons.forEach { lesson ->
-                assertReadable(lesson.title, "${s.lang} lesson title")
-                assertReadable(lesson.summary, "${s.lang} lesson summary")
-                assertTrue("${s.lang}: ${lesson.title} has no body", lesson.body.isNotEmpty())
+        assertEquals("chapter count", En.course.size, Cs.course.size)
+
+        En.course.zip(Cs.course).forEachIndexed { chapterIndex, (en, cs) ->
+            assertEquals(
+                "chapter ${chapterIndex + 1} page count",
+                en.pages.size,
+                cs.pages.size,
+            )
+            en.pages.zip(cs.pages).forEachIndexed { pageIndex, (enPage, csPage) ->
+                val where = "chapter ${chapterIndex + 1} page ${pageIndex + 1}"
+                // Block *types*, in order. This is the invariant that keeps the
+                // two languages one course: a paragraph added to the English
+                // page and not to the Czech one would otherwise go unnoticed
+                // until a Czech reader hit a worked example with a step missing.
+                assertEquals(
+                    "$where block shapes",
+                    enPage.blocks.map { it::class.simpleName },
+                    csPage.blocks.map { it::class.simpleName },
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `every course page is readable in both languages`() {
+        languages.forEach { s ->
+            assertReadable(s.learnIntro, "${s.lang} learn intro")
+            s.course.forEachIndexed { chapterIndex, chapter ->
+                assertReadable(chapter.title, "${s.lang} chapter title")
+                assertReadable(chapter.summary, "${s.lang} chapter summary")
+                assertTrue("${s.lang}: ${chapter.title} has no pages", chapter.pages.isNotEmpty())
+                chapter.pages.forEach { page ->
+                    val where = "${s.lang} ch${chapterIndex + 1} ${page.title}"
+                    assertReadable(page.title, "$where title")
+                    assertTrue("$where has no blocks", page.blocks.isNotEmpty())
+                    page.blocks.forEach { block -> assertBlockReadable(block, where) }
+                }
+            }
+        }
+    }
+
+    private fun assertBlockReadable(block: Block, where: String) {
+        when (block) {
+            is Block.Para -> assertReadable(block.text, "$where para")
+            is Block.Heading -> assertReadable(block.text, "$where heading")
+            is Block.Formula -> assertReadable(block.text, "$where formula")
+            is Block.Note -> assertReadable(block.text, "$where note")
+            is Block.Tip -> assertReadable(block.text, "$where tip")
+            is Block.Bullets -> {
+                assertTrue("$where empty bullets", block.items.isNotEmpty())
+                block.items.forEach { assertReadable(it, "$where bullet") }
+            }
+            is Block.Table -> {
+                assertTrue("$where empty table", block.rows.isNotEmpty())
+                block.rows.forEach { (label, value) ->
+                    assertReadable(label, "$where table label")
+                    assertReadable(value, "$where table value")
+                }
+            }
+            is Block.Bits -> {
+                assertReadable(block.caption, "$where bits caption")
+                assertEquals("$where bit string length", 32, block.bits.length)
+                assertTrue("$where prefix out of range", block.networkBits in 0..32)
+            }
+            is Block.Work -> {
+                assertTrue("$where empty work", block.lines.any { it.isNotBlank() })
+                // Blank lines are the paragraph breaks of a worked calculation,
+                // so they are legal here and only the non-blank ones are text.
+                block.lines.filter { it.isNotBlank() }
+                    .forEach { assertReadable(it, "$where work line") }
+            }
+            is Block.Recipe -> {
+                assertTrue("$where empty recipe", block.items.isNotEmpty())
+                block.items.forEach { step ->
+                    assertReadable(step.rule, "$where recipe rule")
+                    step.work?.let { assertReadable(it, "$where recipe work") }
+                }
+            }
+            is Block.Split -> {
+                assertReadable(block.caption, "$where split caption")
+                assertTrue("$where empty split", block.parts.isNotEmpty())
+                val total = block.parts.sumOf { it.size }
+                // A bar drawn to scale is only honest if the parts really do
+                // add up to the network being drawn.
+                assertEquals("$where split does not fill its capacity", block.capacity, total)
+                block.parts.forEach { assertReadable(it.label, "$where split label") }
+            }
+            is Block.PlaceValue -> {
+                assertReadable(block.caption, "$where place value caption")
+                assertTrue("$where octet out of range", block.value in 0..255)
+            }
+            is Block.Check -> {
+                assertReadable(block.question, "$where check question")
+                assertReadable(block.answer, "$where check answer")
+                block.why?.let { assertReadable(it, "$where check why") }
+            }
+        }
+    }
+
+    @Test
+    fun `every stage has a title, a prompt and a hint in both languages`() {
+        languages.forEach { s ->
+            VlsmStage.entries.forEach { stage ->
+                assertReadable(s.vlsmStageTitle(stage), "${s.lang} vlsm stage title")
+                assertReadable(s.vlsmStagePrompt(stage), "${s.lang} vlsm stage prompt")
+                if (stage != VlsmStage.Done) {
+                    assertTrue("${s.lang} $stage has no hint", s.vlsmStageHint(stage).isNotEmpty())
+                    s.vlsmStageHint(stage).forEach { assertReadable(it, "${s.lang} vlsm hint") }
+                }
+            }
+            AnalyzeStage.entries.forEach { stage ->
+                assertReadable(s.analyzeStageTitle(stage), "${s.lang} analyze stage title")
+                assertReadable(s.analyzeStagePrompt(stage), "${s.lang} analyze stage prompt")
+                if (stage != AnalyzeStage.Done) {
+                    assertTrue("${s.lang} $stage has no hint", s.analyzeStageHint(stage).isNotEmpty())
+                    s.analyzeStageHint(stage).forEach { assertReadable(it, "${s.lang} analyze hint") }
+                }
             }
         }
     }

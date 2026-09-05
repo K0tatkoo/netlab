@@ -9,6 +9,14 @@ data class StepCard(
     val title: String,
     val body: List<String>,
     val rows: List<Pair<String, String>>,
+    /**
+     * The sentence that stays true for every exercise, not just this one.
+     *
+     * Without it a walkthrough is a list of numbers the learner nods along to
+     * and cannot reproduce tomorrow; the point of the app is the method, so the
+     * method is printed on every single step next to its own arithmetic.
+     */
+    val rule: String? = null,
     /** One line of arithmetic, set apart in a monospaced well. */
     val formula: String? = null,
     val bits: BitsView? = null,
@@ -30,6 +38,7 @@ fun render(step: VlsmStep, s: Strings): StepCard = when (step) {
     is VlsmStep.Intro -> StepCard(
         title = s.stepIntroTitle,
         body = s.stepIntroBody(step),
+        rule = s.stepIntroRule,
         rows = listOf(
             s.baseNetwork to Ip.cidr(step.base, step.basePrefix),
             s.fieldMask to Ip.format(Ip.mask(step.basePrefix)),
@@ -47,6 +56,7 @@ fun render(step: VlsmStep, s: Strings): StepCard = when (step) {
     is VlsmStep.Order -> StepCard(
         title = s.stepOrderTitle,
         body = s.stepOrderBody(step),
+        rule = s.stepOrderRule,
         rows = step.ordered.mapIndexed { index, req ->
             "${index + 1}.  ${req.name}" to s.hosts(req.hosts.toLong())
         },
@@ -57,6 +67,7 @@ fun render(step: VlsmStep, s: Strings): StepCard = when (step) {
         StepCard(
             title = s.stepSizeTitle(step),
             body = s.stepSizeBody(step),
+            rule = s.stepSizeRule,
             rows = listOf(
                 s.rowHostsRequired to s.num(a.requirement.hosts),
                 s.rowPlusTwo to s.num(a.requirement.hosts + 2),
@@ -78,6 +89,7 @@ fun render(step: VlsmStep, s: Strings): StepCard = when (step) {
         StepCard(
             title = s.stepPlaceTitle(step),
             body = s.stepPlaceBody(step),
+            rule = s.stepPlaceRule,
             rows = listOf(
                 s.rowFirstFree to Ip.format(step.cursorBefore),
                 s.rowMagicOctet to octetIndex.toString(),
@@ -96,6 +108,7 @@ fun render(step: VlsmStep, s: Strings): StepCard = when (step) {
     is VlsmStep.Overflow -> StepCard(
         title = s.stepOverflowTitle(step),
         body = s.stepOverflowBody(step),
+        rule = s.stepOverflowRule,
         rows = listOf(
             s.rowHostsRequired to s.num(step.requirement.hosts),
             s.rowAddressesNeeded to s.num(step.needed),
@@ -109,6 +122,7 @@ fun render(step: VlsmStep, s: Strings): StepCard = when (step) {
         StepCard(
             title = s.stepVerifyTitle,
             body = s.stepVerifyBody(step),
+            rule = s.stepVerifyRule,
             rows = p.inTaskOrder.map { a ->
                 a.requirement.name to "${Ip.cidr(a.network, a.prefix)}   ${range(a.firstHost, a.lastHost)}"
             } + listOf(
@@ -128,6 +142,7 @@ fun render(step: AnalyzeStep, s: Strings): StepCard = when (step) {
         StepCard(
             title = s.analyzeStepTitle(step),
             body = s.analyzeStepBody(step),
+            rule = s.analyzeStepRule(step),
             rows = listOf(
                 s.fieldPrefix to "/${t.prefix}",
                 s.fieldNetworkBits to t.prefix.toString(),
@@ -147,6 +162,7 @@ fun render(step: AnalyzeStep, s: Strings): StepCard = when (step) {
         StepCard(
             title = s.analyzeStepTitle(step),
             body = s.analyzeStepBody(step),
+            rule = s.analyzeStepRule(step),
             rows = listOf(
                 s.fieldMask to Ip.format(t.mask),
                 s.rowMagicOctet to octetIndex.toString(),
@@ -168,6 +184,7 @@ fun render(step: AnalyzeStep, s: Strings): StepCard = when (step) {
         StepCard(
             title = s.analyzeStepTitle(step),
             body = s.analyzeStepBody(step),
+            rule = s.analyzeStepRule(step),
             rows = listOf(
                 s.fieldAddress to Ip.format(t.address),
                 s.rowMagicOctet to "$octetIndex  ($octetValue)",
@@ -184,6 +201,7 @@ fun render(step: AnalyzeStep, s: Strings): StepCard = when (step) {
         StepCard(
             title = s.analyzeStepTitle(step),
             body = s.analyzeStepBody(step),
+            rule = s.analyzeStepRule(step),
             rows = listOf(
                 s.fieldNetwork to Ip.format(t.network),
                 s.fieldBlockSize to s.num(t.blockSize),
@@ -199,6 +217,7 @@ fun render(step: AnalyzeStep, s: Strings): StepCard = when (step) {
         StepCard(
             title = s.analyzeStepTitle(step),
             body = s.analyzeStepBody(step),
+            rule = s.analyzeStepRule(step),
             rows = listOf(
                 s.fieldNetwork to Ip.format(t.network),
                 s.fieldFirstHost to (t.firstHost?.let { Ip.format(it) } ?: "—"),
@@ -214,6 +233,7 @@ fun render(step: AnalyzeStep, s: Strings): StepCard = when (step) {
         StepCard(
             title = s.analyzeStepTitle(step),
             body = s.analyzeStepBody(step),
+            rule = s.analyzeStepRule(step),
             rows = listOf(
                 s.fieldHostBits to t.hostBits.toString(),
                 s.fieldTotalAddresses to s.num(t.blockSize),

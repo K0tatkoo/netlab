@@ -98,3 +98,14 @@ object Vlsm {
     fun demand(requirements: List<Requirement>): Long =
         requirements.sumOf { Ip.blockSize(Ip.prefixFor(it.hosts)) }
 }
+
+/**
+ * Is this the order the method demands — largest first?
+ *
+ * Graded on the host counts and not on the names: two subnets asking for the
+ * same number of hosts may be dragged into either order and both are right,
+ * and marking one of them wrong would be testing tie-breaking rules that do
+ * not exist rather than the sort itself.
+ */
+fun orderedLargestFirst(requirements: List<Requirement>): Boolean =
+    requirements.zipWithNext().all { (a, b) -> a.hosts >= b.hosts }

@@ -3,7 +3,6 @@ package com.n3d.netlab.data
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -22,8 +21,6 @@ data class Settings(
     val theme: ThemeMode = ThemeMode.System,
     val kind: ExerciseKind = ExerciseKind.Vlsm,
     val difficulty: Difficulty = Difficulty.Easy,
-    /** Ask only for the network address and prefix, not the whole range. */
-    val shortFields: Boolean = false,
     val solved: Int = 0,
     val streak: Int = 0,
     val best: Int = 0,
@@ -49,7 +46,6 @@ class Prefs(private val context: Context) {
             theme = p[KeyTheme]?.let { name -> ThemeMode.entries.firstOrNull { it.name == name } } ?: ThemeMode.System,
             kind = p[KeyKind]?.let { name -> ExerciseKind.entries.firstOrNull { it.name == name } } ?: ExerciseKind.Vlsm,
             difficulty = p[KeyDifficulty]?.let { name -> Difficulty.entries.firstOrNull { it.name == name } } ?: Difficulty.Easy,
-            shortFields = p[KeyShortFields] ?: false,
             solved = p[KeySolved] ?: 0,
             streak = p[KeyStreak] ?: 0,
             best = p[KeyBest] ?: 0,
@@ -60,7 +56,6 @@ class Prefs(private val context: Context) {
     suspend fun setTheme(value: ThemeMode) = context.dataStore.edit { it[KeyTheme] = value.name }
     suspend fun setKind(value: ExerciseKind) = context.dataStore.edit { it[KeyKind] = value.name }
     suspend fun setDifficulty(value: Difficulty) = context.dataStore.edit { it[KeyDifficulty] = value.name }
-    suspend fun setShortFields(value: Boolean) = context.dataStore.edit { it[KeyShortFields] = value }
 
     suspend fun recordResult(correct: Boolean) = context.dataStore.edit { p ->
         if (correct) {
@@ -84,7 +79,6 @@ class Prefs(private val context: Context) {
         val KeyTheme = stringPreferencesKey("theme")
         val KeyKind = stringPreferencesKey("kind")
         val KeyDifficulty = stringPreferencesKey("difficulty")
-        val KeyShortFields = booleanPreferencesKey("short_fields")
         val KeySolved = intPreferencesKey("solved")
         val KeyStreak = intPreferencesKey("streak")
         val KeyBest = intPreferencesKey("best")

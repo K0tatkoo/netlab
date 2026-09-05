@@ -1,7 +1,9 @@
 package com.n3d.netlab.i18n
 
+import com.n3d.netlab.core.AnalyzeStage
 import com.n3d.netlab.core.AnalyzeStep
 import com.n3d.netlab.core.Ip
+import com.n3d.netlab.core.VlsmStage
 import com.n3d.netlab.core.VlsmStep
 
 object Cs : Strings {
@@ -47,31 +49,33 @@ object Cs : Strings {
 
     // ---- navigation ----------------------------------------------------------
 
-    override val tabPractice = "Procvičování"
+    override val appName = "NetLab"
+    override val tabLearn = "Učení"
+    override val tabExercise = "Cvičení"
     override val tabCalculator = "Kalkulačka"
-    override val tabLearn = "Teorie"
     override val tabSettings = "Nastavení"
 
     // ---- shared vocabulary ---------------------------------------------------
 
     override val actionCheck = "Zkontrolovat"
-    override val actionSolution = "Krok za krokem"
-    override val actionHideSolution = "Skrýt řešení"
+    override val actionSolution = "Celé řešení"
     override val actionNewExercise = "Nové cvičení"
     override val actionNext = "Další"
     override val actionBack = "Zpět"
-    override val actionReset = "Vymazat"
     override val actionClose = "Zavřít"
     override val actionAdd = "Přidat"
     override val actionShowAll = "Všechny kroky"
     override val actionOneByOne = "Po krocích"
-    override val actionFillCorrect = "Doplnit odpovědi"
     override val actionClear = "Vymazat"
     override val actionConfirm = "Vynulovat"
     override val actionCancel = "Zrušit"
+    override val actionContinue = "Pokračovat"
+    override val actionRetry = "Zkusit znovu"
+    override val actionHint = "Jak se to dělá?"
+    override val actionHideHint = "Skrýt"
+    override val actionShowAnswer = "Ukaž mi odpověď"
+    override val actionReveal = "Ukázat odpověď"
 
-    override val labelCorrect = "Správně"
-    override val labelWrong = "Špatně"
     override val labelExpected = "Správná odpověď"
     override val labelSolved = "Vyřešeno"
     override val labelStreak = "Série"
@@ -116,9 +120,9 @@ object Cs : Strings {
     override val scopeMulticast = "Multicast"
     override val scopeReserved = "Rezervovaná"
 
-    // ---- practice ------------------------------------------------------------
+    // ---- exercise ------------------------------------------------------------
 
-    override val practiceTitle = "Procvičování"
+    override val exerciseTitle = "Cvičení"
     override val kindVlsm = "Rozdělení sítě"
     override val kindAnalyze = "Rozbor adresy"
     override val kindVlsmHint = "Rozděl jednu síť na podsítě různých velikostí"
@@ -131,21 +135,111 @@ object Cs : Strings {
     override val analyzePrompt = "Dopočítej všechno o síti, do které tahle adresa patří."
     override val yourAnswer = "Tvoje odpověď"
 
-    override fun requirement(name: String, hostCount: Int) = "$name — ${hosts(hostCount.toLong())}"
     override fun subnetTitle(name: String) = "Podsíť $name"
+    override fun stageOf(index: Int, total: Int) = "Krok $index z $total"
 
-    override val verdictPerfect = "Všechno správně."
-    override fun verdictWrong(wrong: Int, total: Int) = "Špatně: $wrong z $total polí."
-    override val verdictIncomplete = "Některá pole jsou ještě prázdná."
-    override val verdictNothing = "Nejdřív něco vyplň."
-    override val notCheckedYet = "Zatím nezkontrolováno"
+    // ---- exercise stages -----------------------------------------------------
+
+    override fun vlsmStageTitle(stage: VlsmStage) = when (stage) {
+        VlsmStage.Order -> "Seřaď je"
+        VlsmStage.Size -> "Jak velká je která?"
+        VlsmStage.Place -> "Kam který blok patří?"
+        VlsmStage.Done -> "Hotovo"
+    }
+
+    override fun vlsmStagePrompt(stage: VlsmStage) = when (stage) {
+        VlsmStage.Order -> "Přetáhni podsítě tak, aby ta s největším počtem uzlů byla nahoře."
+        VlsmStage.Size -> "U každé podsítě urči prefix. Uzly + 2, zaokrouhli nahoru na mocninu dvojky, prefix = 32 − exponent."
+        VlsmStage.Place -> "Začni na první volné adrese a u každého bloku odečti: adresu sítě, první uzel, poslední uzel a broadcast."
+        VlsmStage.Done -> "Všechny kroky jsou zodpovězené."
+    }
+
+    override fun vlsmStageHint(stage: VlsmStage) = when (stage) {
+        VlsmStage.Order -> listOf(
+            "Blok o 2^n adresách smí začínat jen na adrese, která je násobkem 2^n. Blok 64 adres začíná na 0, 64, 128 nebo 192 — nikdy na 16.",
+            "Když dáš první malou podsíť, další velká nemá kam zarovnaně padnout, musí přeskočit dopředu a všechno přeskočené je ztracené.",
+            "Když jdeš od největší, další volná adresa je vždycky už zarovnaná pro to, co přijde po ní.",
+        )
+        VlsmStage.Size -> listOf(
+            "Nejdřív přičti 2 k počtu uzlů: jedna adresa padne na adresu sítě, druhá na broadcast, a ani jednu nesmíš dát zařízení.",
+            "Pak lez po žebříku 2, 4, 8, 16, 32, 64, 128… a zastav se na první příčce, která stačí. Zaokrouhluje se nahoru, ne na nejbližší.",
+            "Ten exponent jsou uzlové bity h. Prefix je 32 − h. Takže 60 uzlů → 62 adres → 2^6 = 64 → /26.",
+        )
+        VlsmStage.Place -> listOf(
+            "První podsíť začíná na adrese samotné výchozí sítě. Každá další začíná na předchozím broadcastu + 1.",
+            "Broadcast = adresa sítě + velikost bloku − 1. To −1 je proto, že adresa sítě je první z adres bloku.",
+            "První uzel = síť + 1, poslední uzel = broadcast − 1.",
+        )
+        VlsmStage.Done -> emptyList()
+    }
+
+    override fun analyzeStageTitle(stage: AnalyzeStage) = when (stage) {
+        AnalyzeStage.Mask -> "Maska a velikost bloku"
+        AnalyzeStage.Network -> "Adresa sítě"
+        AnalyzeStage.Broadcast -> "Broadcast"
+        AnalyzeStage.Hosts -> "Uzly"
+        AnalyzeStage.Done -> "Hotovo"
+    }
+
+    override fun analyzeStagePrompt(stage: AnalyzeStage) = when (stage) {
+        AnalyzeStage.Mask -> "Napiš prefix jako masku s tečkami a urči, kolik adres blok obsahuje."
+        AnalyzeStage.Network -> "Zaokrouhli zadanou adresu dolů na začátek jejího bloku."
+        AnalyzeStage.Broadcast -> "Poslední adresa téhož bloku."
+        AnalyzeStage.Hosts -> "Oba konce použitelného rozsahu a kolik adres se mezi ně vejde."
+        AnalyzeStage.Done -> "Všechny kroky jsou zodpovězené."
+    }
+
+    override fun analyzeStageHint(stage: AnalyzeStage) = when (stage) {
+        AnalyzeStage.Mask -> listOf(
+            "Prefix je počet jedniček, kterými maska začíná. Rozděl ho po oktetech: /26 je 8 + 8 + 8 + 2.",
+            "Oktet masky může být jen 0, 128, 192, 224, 240, 248, 252, 254 nebo 255 — jedna hodnota na každý počet jedniček. Dvě jedničky jsou 192.",
+            "Velikost bloku = 2^h, kde h = 32 − prefix. /26 nechává 6 uzlových bitů, takže 2^6 = 64 adres.",
+        )
+        AnalyzeStage.Network -> listOf(
+            "Najdi zajímavý oktet — ten, kde maska není ani 255, ani 0.",
+            "Magické číslo = 256 − ten oktet masky. Bloky začínají na každém jeho násobku.",
+            "Hodnotu adresy v tom oktetu zaokrouhli dolů na násobek magického čísla a všechny oktety vpravo od něj nastav na 0.",
+        )
+        AnalyzeStage.Broadcast -> listOf(
+            "Broadcast = adresa sítě + velikost bloku − 1.",
+            "Ručně je to rychlejší v zajímavém oktetu: přičti magické číslo, odečti 1 a všechny oktety vpravo nastav na 255.",
+        )
+        AnalyzeStage.Hosts -> listOf(
+            "První uzel = adresa sítě + 1. Samotnou adresu sítě nesmíš dát zařízení nikdy.",
+            "Poslední uzel = broadcast − 1, ze stejného důvodu na druhém konci.",
+            "Použitelných = 2^h − 2. To jsou přesně ty dvě adresy, které jsi právě přeskočil.",
+        )
+        AnalyzeStage.Done -> emptyList()
+    }
+
+    override val hintTitle = "Pravidlo"
+    override val dragHandle = "Přetáhni pro změnu pořadí"
+    override val orderPrompt = "Největší nahoru"
+    override val orderTopLabel = "Umístí se první"
+    override val orderBottomLabel = "Umístí se poslední"
+
+    override val stageCorrect = "Správně."
+    override val stageWrongOrder = "Ještě to není seřazené. Nahoru patří podsíť s největším počtem uzlů."
+    override fun stageWrongFields(wrong: Int) =
+        "Špatně: $wrong ${plural(wrong.toLong(), "odpověď", "odpovědi", "odpovědí")}."
+    override val stageIncomplete = "Nejdřív všechno vyplň."
+    override val stageRevealed = "Odpověď je ukázaná. Přečti si ji a pokračuj."
+
+    override val resultTitle = "Cvičení hotové"
+    override val resultPerfect = "Vyřešeno bez chyby."
+    override fun resultMistakes(count: Int) =
+        "Vyřešeno, $count ${plural(count.toLong(), "krok potřeboval", "kroky potřebovaly", "kroků potřebovalo")} druhý pokus."
+    override val resultPlan = "Tvůj plán"
+    override val resultFree = "zbývá"
 
     // ---- walkthrough ---------------------------------------------------------
 
     override val solutionTitle = "Krok za krokem"
+    override val ruleLabel = "Pravidlo"
     override fun stepOf(index: Int, total: Int) = "Krok $index z $total"
 
     override val stepIntroTitle = "Co máš zadáno"
+    override val stepIntroRule = "Kapacita výchozí sítě = 2^(32 − prefix). Cena zadání = každá podsíť zaokrouhlená nahoru na mocninu dvojky, sečteno dohromady."
 
     override fun stepIntroBody(step: VlsmStep.Intro): List<String> {
         val last = step.base + step.capacity - 1
@@ -168,12 +262,15 @@ object Cs : Strings {
     }
 
     override val stepOrderTitle = "Seřaď je od největší"
+    override val stepOrderRule = "Vždycky přiděluj od největší. Blok 2^n smí začínat jen na násobku 2^n a sestupné pořadí drží kurzor zarovnaný zadarmo."
 
     override fun stepOrderBody(step: VlsmStep.Order): List<String> = listOf(
         "Seřaď podsítě podle velikosti, od největší: ${step.ordered.joinToString(", ") { "${it.name} (${num(it.hosts.toLong())})" }}.",
         "Není to úklid, ale samotná metoda. Blok o 2^n adresách smí začínat jen na adrese, která je násobkem 2^n — /26 na 0, 64, 128 nebo 192, nikdy na 16.",
         "Když přidělíš malou podsíť první, ta velká pak nemá kam zarovnaně začít, musíš přeskočit dopředu a všechno přeskočené je ztracené. Když jdeš od největší, další volná adresa je pokaždé už zarovnaná na to, co má přijít.",
     )
+
+    override val stepSizeRule = "uzly + 2 → zaokrouhli NAHORU na nejbližší mocninu dvojky 2^h → prefix = 32 − h."
 
     override fun stepSizeTitle(step: VlsmStep.Size) = "${subnetTitle(step.alloc.requirement.name)} — jak velká?"
 
@@ -188,6 +285,8 @@ object Cs : Strings {
             "Prefix je to, co zbyde: 32 − ${a.hostBits} = /${a.prefix}, maska ${Ip.format(a.mask)}. Blok je široký ${addresses(a.blockSize)}, z toho ${num(a.usable)} použitelných — ${num(a.spare)} v rezervě.",
         )
     }
+
+    override val stepPlaceRule = "Síť = první volná adresa (už je zarovnaná). Broadcast = síť + velikost bloku − 1. První = síť + 1, poslední = broadcast − 1."
 
     override fun stepPlaceTitle(step: VlsmStep.Place) = "${subnetTitle(step.alloc.requirement.name)} — kam?"
 
@@ -210,6 +309,8 @@ object Cs : Strings {
         )
     }
 
+    override val stepOverflowRule = "Blok nesmí přesáhnout konec výchozí sítě. Pokud je zbytek menší než blok, podsíť se nedá umístit vůbec."
+
     override fun stepOverflowTitle(step: VlsmStep.Overflow) =
         "${subnetTitle(step.requirement.name)} se nevejde"
 
@@ -220,6 +321,7 @@ object Cs : Strings {
     )
 
     override val stepVerifyTitle = "Zkontroluj plán"
+    override val stepVerifyRule = "Každá adresa sítě je násobkem své vlastní velikosti bloku a každý broadcast je přesně o jedna níž než následující adresa sítě."
 
     override fun stepVerifyBody(step: VlsmStep.Verify): List<String> {
         val p = step.plan
@@ -234,6 +336,15 @@ object Cs : Strings {
         lines += "Uvnitř podsítí je ${num(p.wasted)} použitelných adres, které si nikdo nenárokuje. To je cena za zaokrouhlování každé podsítě nahoru na mocninu dvojky a je to normální."
         lines += "Správnost plánu drží dvě věci a obě se vyplatí zkontrolovat ručně: každá adresa sítě je násobkem své vlastní velikosti bloku a žádné dva rozsahy se nepřekrývají. Když čteš seznam shora dolů, broadcast každé podsítě je přesně o jedna menší než adresa sítě té následující."
         return lines
+    }
+
+    override fun analyzeStepRule(step: AnalyzeStep): String = when (step) {
+        is AnalyzeStep.Mask -> "tolik jedniček, kolik je prefix, pak nuly do 32, rozdělit na čtyři oktety. Oktet masky je vždy jen 0, 128, 192, 224, 240, 248, 252, 254 nebo 255."
+        is AnalyzeStep.Magic -> "magické číslo = 256 − ten oktet masky, který není 255 ani 0. Bloky začínají na každém jeho násobku."
+        is AnalyzeStep.Network -> "Zajímavý oktet zaokrouhli dolů na násobek magického čísla; všechny oktety vpravo vynuluj."
+        is AnalyzeStep.Broadcast -> "broadcast = síť + velikost bloku − 1; vpravo od zajímavého oktetu je všechno 255."
+        is AnalyzeStep.Hosts -> "první = síť + 1, poslední = broadcast − 1."
+        is AnalyzeStep.Count -> "použitelných = 2^h − 2, kde h = 32 − prefix."
     }
 
     override fun analyzeStepTitle(step: AnalyzeStep): String = when (step) {
@@ -367,8 +478,14 @@ object Cs : Strings {
 
     // ---- learn ---------------------------------------------------------------
 
-    override val learnTitle = "Teorie"
-    override val lessons = csLessons
+    override val learnTitle = "Učení"
+    override val learnIntro = "Devět kapitol, od „co je to IP adresa“ až po celý plán VLSM. Všechno se dá spočítat tužkou, papírem a hlavou — kalkulačka nikde."
+    override val learnStartHere = "Začni tady"
+    override val course = csCourse
+    override fun chapterOf(index: Int, total: Int) = "Kapitola $index z $total"
+    override val chapterDone = "Kapitola dočtená"
+    override val chapterDoneBody = "Zkus další, nebo běž do Cvičení a udělej jeden příklad naostro."
+    override val checkYourself = "Otestuj se"
 
     // ---- settings ------------------------------------------------------------
 
@@ -378,11 +495,9 @@ object Cs : Strings {
     override val themeSystem = "Systém"
     override val themeLight = "Světlý"
     override val themeDark = "Tmavý"
-    override val settingDefaults = "Procvičování"
+    override val settingDefaults = "Cvičení"
     override val settingDefaultKind = "Typ cvičení"
     override val settingDefaultDifficulty = "Obtížnost"
-    override val settingShortFields = "Krátké odpovědi"
-    override val settingShortFieldsHint = "Ptát se jen na adresu sítě a prefix, ne na celý rozsah."
     override val settingStats = "Statistika"
     override val settingResetStats = "Vynulovat statistiku"
     override val settingResetStatsHint = "Smaže počet vyřešených cvičení i obě série."
