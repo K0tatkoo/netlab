@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -36,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.n3d.netlab.AppViewModel
@@ -81,14 +83,15 @@ fun LearnScreen(vm: AppViewModel) {
             } else {
                 null
             },
+            onRead = { vm.markChapterRead(openChapter) },
         )
     } else {
-        ChapterList(s, onOpen = { openChapter = it })
+        ChapterList(s, read = vm.settings.chaptersRead, onOpen = { openChapter = it })
     }
 }
 
 @Composable
-internal fun ChapterList(s: Strings, onOpen: (Int) -> Unit) {
+internal fun ChapterList(s: Strings, read: Set<Int>, onOpen: (Int) -> Unit) {
     val neu = LocalNeu.current
     LazyColumn(
         Modifier.fillMaxWidth(),
@@ -124,13 +127,24 @@ internal fun ChapterList(s: Strings, onOpen: (Int) -> Unit) {
                         Text(chapter.summary, style = NeuType.Small, color = neu.faint)
                     }
                     Spacer(Modifier.width(8.dp))
+                    if (index in read) {
+                        Icon(
+                            Icons.Rounded.CheckCircle,
+                            contentDescription = s.chapterRead,
+                            tint = neu.ok,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                    }
                     Icon(
                         Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                         contentDescription = null,
                         tint = neu.faint,
                     )
                 }
-                if (index == 0) {
+                // Only until it has been read: a course that keeps telling a
+                // reader where to start is talking past somebody who started.
+                if (index == 0 && 0 !in read) {
                     Spacer(Modifier.height(10.dp))
                     Banner(s.learnStartHere, neu.accent)
                 }
@@ -147,6 +161,7 @@ internal fun ChapterReader(
     s: Strings,
     onClose: () -> Unit,
     onNextChapter: (() -> Unit)?,
+    onRead: () -> Unit = {},
 ) {
     val neu = LocalNeu.current
     // Reset to page one whenever a different chapter is opened, rather than
@@ -155,6 +170,10 @@ internal fun ChapterReader(
     val lastPage = chapter.pages.lastIndex
     val page = chapter.pages.getOrNull(pageIndex.coerceIn(0, lastPage)) ?: return
     val atEnd = pageIndex >= lastPage
+
+    // Reaching the last page is what counts as having read the chapter. It is
+    // the only signal there is, and it is the honest one: the reader got there.
+    LaunchedEffect(chapter.title, atEnd) { if (atEnd) onRead() }
 
     Column(Modifier.fillMaxSize().background(neu.bg)) {
         Row(
@@ -212,6 +231,14 @@ internal fun ChapterReader(
                 fill = true,
             )
         }
+
+        Text(
+            s.pageOf(pageIndex + 1, chapter.pages.size),
+            style = NeuType.Small,
+            color = neu.faint,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        )
     }
 }
 

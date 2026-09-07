@@ -453,6 +453,7 @@ object En : Strings {
         "$count ${if (count == 1) "subnet does" else "subnets do"} not fit"
     override val designerPlan = "Plan"
     override val designerHostsFor = "Hosts"
+    override val designerTypeHosts = "Type the exact number of hosts, or drag the slider."
 
     // ---- learn ---------------------------------------------------------------
 
@@ -461,6 +462,8 @@ object En : Strings {
     override val learnStartHere = "Start here"
     override val course = enCourse
     override fun chapterOf(index: Int, total: Int) = "Chapter $index of $total"
+    override fun pageOf(index: Int, total: Int) = "Page $index of $total"
+    override val chapterRead = "Read"
     override val chapterDone = "Chapter finished"
     override val chapterDoneBody = "Try the next one, or go to Exercise and do one for real."
     override val checkYourself = "Check yourself"
@@ -476,6 +479,11 @@ object En : Strings {
     override val settingDefaults = "Exercise"
     override val settingDefaultKind = "Exercise type"
     override val settingDefaultDifficulty = "Difficulty"
+    override val progressTitle = "Progress"
+    override val progressChapters = "Chapters read"
+    override val progressExercises = "Exercises solved"
+    override val progressClean = "Solved with no help"
+    override val progressNone = "Nothing yet — read a chapter or solve an exercise."
     override val settingStats = "Statistics"
     override val settingResetStats = "Reset statistics"
     override val settingResetStatsHint = "Clears the solved count and both streaks."

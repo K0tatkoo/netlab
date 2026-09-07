@@ -87,7 +87,7 @@ fun ChapterListPreview() {
     NetLabTheme(ThemeMode.Light) {
         val neu = LocalNeu.current
         Column(Modifier.fillMaxSize().background(neu.bg)) {
-            ChapterList(En, onOpen = {})
+            ChapterList(En, read = setOf(0, 1), onOpen = {})
         }
     }
 }

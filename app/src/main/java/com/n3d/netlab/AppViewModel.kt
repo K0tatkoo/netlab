@@ -143,6 +143,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setDifficulty(value: Difficulty) { viewModelScope.launch { prefs.setDifficulty(value) } }
     fun resetStats() { viewModelScope.launch { prefs.resetStats() } }
 
+    /** Called by the reader when a chapter's last page comes into view. */
+    fun markChapterRead(index: Int) {
+        if (index in settings.chaptersRead) return
+        viewModelScope.launch { prefs.markChapterRead(index) }
+    }
+
     // ---- exercise flow -------------------------------------------------------
 
     fun newExercise() {
@@ -327,7 +333,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (stageDone && !scored) {
             scored = true
             val clean = mistakes == 0
-            viewModelScope.launch { prefs.recordResult(clean) }
+            val kind = settings.kind
+            viewModelScope.launch { prefs.recordResult(kind, clean) }
         }
     }
 

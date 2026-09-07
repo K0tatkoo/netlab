@@ -18,6 +18,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +27,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -64,6 +68,9 @@ import com.n3d.netlab.ui.theme.neuInset
 private enum class CalcMode { Subnet, Designer }
 
 private val LETTERS = listOf("A", "B", "C", "D", "E", "F", "G", "H")
+
+/** The top of the host slider. Above this a subnet is bigger than a /20. */
+private const val MAX_HOSTS = 4000
 
 @Composable
 fun CalculatorScreen(vm: AppViewModel) {
@@ -355,8 +362,79 @@ private fun SubnetSliderCard(
                 size = 32.dp,
             )
         }
-        NeuHostSlider(hosts = hosts, maxHosts = 4000, onHostsChange = onHostsChange)
+
+        // A slider cannot land on 62, and 62 is exactly the number an
+        // assignment asks for. So the figure is typed and the slider is for
+        // exploring — the same pairing the web version settled on.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            HostCountField(
+                hosts = hosts,
+                maxHosts = MAX_HOSTS,
+                label = "${s.designerHostsFor} $name",
+                onHostsChange = onHostsChange,
+                modifier = Modifier.width(96.dp),
+            )
+            Spacer(Modifier.width(12.dp))
+            NeuHostSlider(
+                hosts = hosts,
+                maxHosts = MAX_HOSTS,
+                onHostsChange = onHostsChange,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Text(
+            s.designerTypeHosts,
+            style = NeuType.Small,
+            color = neu.faint,
+            modifier = Modifier.padding(top = 2.dp),
+        )
     }
+}
+
+/**
+ * The number box beside the host slider.
+ *
+ * It holds its own text while it has focus, so a half-typed "6" on the way to
+ * "62" is not snapped back to a legal number under the finger. Leaving the
+ * field is what commits it: an empty or nonsense box falls back to the count
+ * the plan is already drawn from rather than showing a subnet that does not
+ * exist.
+ */
+@Composable
+private fun HostCountField(
+    hosts: Int,
+    maxHosts: Int,
+    label: String,
+    onHostsChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var text by remember { mutableStateOf(hosts.toString()) }
+    var focused by remember { mutableStateOf(false) }
+
+    // The slider moves the same number, so an unfocused box follows it.
+    LaunchedEffect(hosts, focused) {
+        if (!focused && text.toIntOrNull() != hosts) text = hosts.toString()
+    }
+
+    NeuTextField(
+        value = text,
+        onValueChange = { raw ->
+            val digits = raw.filter { it.isDigit() }.take(maxHosts.toString().length)
+            text = digits
+            digits.toIntOrNull()?.coerceIn(1, maxHosts)?.let(onHostsChange)
+        },
+        modifier = modifier
+            .onFocusChanged { state ->
+                focused = state.isFocused
+                if (!state.isFocused) text = hosts.toString()
+            }
+            // The card's own heading says "A"; the box on its own says nothing,
+            // so it carries the subnet's name for a screen reader.
+            .semantics { contentDescription = label },
+        keyboardType = KeyboardType.Number,
+        textStyle = NeuType.Mono.copy(fontSize = 15.sp),
+        minHeight = 46.dp,
+    )
 }
 
 @Composable

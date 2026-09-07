@@ -29,8 +29,10 @@ import com.n3d.netlab.core.Difficulty
 import com.n3d.netlab.core.ExerciseKind
 import com.n3d.netlab.data.ThemeMode
 import com.n3d.netlab.i18n.Lang
+import com.n3d.netlab.i18n.Strings
 import com.n3d.netlab.ui.components.ButtonTone
 import com.n3d.netlab.ui.components.NeuButton
+import com.n3d.netlab.ui.components.InfoRow
 import com.n3d.netlab.ui.components.NeuCard
 import com.n3d.netlab.ui.components.NeuSegmented
 import com.n3d.netlab.ui.components.Overlay
@@ -108,6 +110,8 @@ fun SettingsScreen(vm: AppViewModel) {
                 }
             }
 
+            item { ProgressCard(vm, s) }
+
             item {
                 NeuCard {
                     SectionLabel(s.settingStats)
@@ -179,6 +183,41 @@ fun SettingsScreen(vm: AppViewModel) {
                         fill = true,
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * What has actually been done, as opposed to how well.
+ *
+ * Separate from the Statistics card because the two answer different questions
+ * and only one of them is a score: Reset clears the streak and leaves the
+ * chapters alone, so the two cannot share a card without lying about it.
+ */
+@Composable
+private fun ProgressCard(vm: AppViewModel, s: Strings) {
+    val neu = LocalNeu.current
+    val settings = vm.settings
+    val chapters = settings.chaptersRead.count { it in s.course.indices }
+    NeuCard {
+        SectionLabel(s.progressTitle)
+        if (chapters == 0 && settings.solved == 0) {
+            Text(s.progressNone, style = NeuType.Small, color = neu.faint)
+            return@NeuCard
+        }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .neuInset(NeuRadius.Md, NeuDepths.InsetSm)
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+        ) {
+            Column {
+                InfoRow(s.progressChapters, "$chapters / ${s.course.size}")
+                InfoRow(s.progressExercises, s.num(settings.solved))
+                InfoRow(s.progressClean, s.num(settings.clean))
+                InfoRow(s.kindVlsm, s.num(settings.solvedVlsm))
+                InfoRow(s.kindAnalyze, s.num(settings.solvedAnalyze))
             }
         }
     }

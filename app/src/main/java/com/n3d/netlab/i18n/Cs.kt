@@ -475,6 +475,7 @@ object Cs : Strings {
     override fun designerOverflow(count: Int) = "Nevejde se: ${subnets(count)}"
     override val designerPlan = "Plán"
     override val designerHostsFor = "Uzly"
+    override val designerTypeHosts = "Napiš přesný počet uzlů, nebo posuň táhlem."
 
     // ---- learn ---------------------------------------------------------------
 
@@ -483,6 +484,8 @@ object Cs : Strings {
     override val learnStartHere = "Začni tady"
     override val course = csCourse
     override fun chapterOf(index: Int, total: Int) = "Kapitola $index z $total"
+    override fun pageOf(index: Int, total: Int) = "Strana $index z $total"
+    override val chapterRead = "Přečteno"
     override val chapterDone = "Kapitola dočtená"
     override val chapterDoneBody = "Zkus další, nebo běž do Cvičení a udělej jeden příklad naostro."
     override val checkYourself = "Otestuj se"
@@ -498,6 +501,11 @@ object Cs : Strings {
     override val settingDefaults = "Cvičení"
     override val settingDefaultKind = "Typ cvičení"
     override val settingDefaultDifficulty = "Obtížnost"
+    override val progressTitle = "Postup"
+    override val progressChapters = "Přečtené kapitoly"
+    override val progressExercises = "Vyřešená cvičení"
+    override val progressClean = "Vyřešeno bez pomoci"
+    override val progressNone = "Zatím nic — přečti kapitolu nebo vyřeš cvičení."
     override val settingStats = "Statistika"
     override val settingResetStats = "Vynulovat statistiku"
     override val settingResetStatsHint = "Smaže počet vyřešených cvičení i obě série."

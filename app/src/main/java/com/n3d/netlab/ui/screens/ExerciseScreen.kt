@@ -1,7 +1,14 @@
 package com.n3d.netlab.ui.screens
 
+import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.StartOffset
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -40,7 +47,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -415,7 +425,10 @@ internal fun SubnetOrderList(
             onMove = onMove,
             key = { it.name },
             enabled = !locked,
-        ) { req, index, dragging, handle ->
+        ) { req, index, dragging, handle, body ->
+            // A handle under the finger has already been found; it holds
+            // the accent rather than carrying on waving about.
+            val pulse = if (dragging) 1f else handlePulse(index, active = !locked)
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -423,43 +436,61 @@ internal fun SubnetOrderList(
                     .neuRaised(
                         radius = NeuRadius.Md,
                         depth = if (dragging) NeuDepths.Lg else NeuDepths.Sm,
-                    )
-                    .padding(start = 14.dp, end = 4.dp),
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    "${index + 1}",
-                    style = NeuType.Small.copy(fontWeight = FontWeight.Bold),
-                    color = neu.faint,
-                    modifier = Modifier.width(16.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Dot(toneFor(req.name), 10.dp)
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    req.name,
-                    style = NeuType.Label.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
-                    color = neu.text,
-                    modifier = Modifier.width(26.dp),
-                )
-                Text(
-                    s.hosts(req.hosts.toLong()),
-                    style = NeuType.Mono,
-                    color = neu.dim,
-                    modifier = Modifier.weight(1f),
-                )
+                // The subnet itself is a grab target, not only the handle —
+                // the bubble is what a learner reads as "the subnet". It takes
+                // a long press, because an immediate drag here would stop the
+                // exercise screen scrolling; the handle is the quick way.
+                Row(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .then(body)
+                        .padding(start = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "${index + 1}",
+                        style = NeuType.Small.copy(fontWeight = FontWeight.Bold),
+                        color = neu.faint,
+                        modifier = Modifier.width(16.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Dot(toneFor(req.name), 10.dp)
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        req.name,
+                        style = NeuType.Label.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
+                        color = neu.text,
+                        modifier = Modifier.width(26.dp),
+                    )
+                    Text(
+                        s.hosts(req.hosts.toLong()),
+                        style = NeuType.Mono,
+                        color = neu.dim,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
                 // The handle's touch target is the whole 44dp box, not the
                 // 22dp glyph: a drag that only starts on the icon itself is a
                 // coin-toss with a thumb.
                 Box(
-                    Modifier.size(44.dp).then(handle),
+                    Modifier
+                        .size(44.dp)
+                        .then(handle)
+                        .padding(end = 4.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.Rounded.DragHandle,
                         contentDescription = s.dragHandle,
-                        tint = if (locked) neu.faint.copy(alpha = 0.4f) else neu.faint,
-                        modifier = Modifier.size(22.dp),
+                        tint = when {
+                            locked -> neu.faint.copy(alpha = 0.4f)
+                            else -> lerp(neu.faint, neu.accent, pulse)
+                        },
+                        modifier = Modifier.size(22.dp).scale(1f + 0.14f * pulse),
                     )
                 }
             }
@@ -473,6 +504,45 @@ internal fun SubnetOrderList(
             modifier = Modifier.padding(start = 2.dp),
         )
     }
+}
+
+/**
+ * The breathing on a drag handle, 0 at rest and 1 at full accent.
+ *
+ * Nothing about two grey lines says "pick me up", and a learner who does not
+ * work that out is stuck on the very first stage of the very first exercise.
+ * So the handle breathes, offset a little per row so the list ripples rather
+ * than blinking in unison, and stops once the stage is answered. The caller
+ * settles it on the row being dragged, which is also where the animation is
+ * torn down — the same restart-with-its-own-delay the CSS version does.
+ */
+@Composable
+private fun handlePulse(index: Int, active: Boolean): Float {
+    val context = LocalContext.current
+    // A pulse that never stops is exactly what "remove animations" is asking
+    // about, so there it becomes a plain accent tint instead.
+    val stillPictures = remember(context) {
+        Settings.Global.getFloat(
+            context.contentResolver,
+            Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f,
+        ) == 0f
+    }
+    if (!active) return 0f
+    if (stillPictures) return 1f
+
+    val breathe = rememberInfiniteTransition(label = "handle")
+    val pulse by breathe.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1300, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+            initialStartOffset = StartOffset(index * 300),
+        ),
+        label = "handleBreathe",
+    )
+    return pulse
 }
 
 /** Stage two: one prefix per subnet, in the order the learner just produced. */

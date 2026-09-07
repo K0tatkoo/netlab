@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.n3d.netlab.core.Difficulty
 import com.n3d.netlab.core.ExerciseKind
@@ -24,6 +25,16 @@ data class Settings(
     val solved: Int = 0,
     val streak: Int = 0,
     val best: Int = 0,
+    /**
+     * Everything the Progress card reports, kept apart from the three headline
+     * numbers because [resetStats] clears those and leaves the reading alone —
+     * chapters you have read are not a score.
+     */
+    val clean: Int = 0,
+    val solvedVlsm: Int = 0,
+    val solvedAnalyze: Int = 0,
+    /** Indices of the chapters the reader has paged all the way through. */
+    val chaptersRead: Set<Int> = emptySet(),
 )
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "netlab")
@@ -49,6 +60,10 @@ class Prefs(private val context: Context) {
             solved = p[KeySolved] ?: 0,
             streak = p[KeyStreak] ?: 0,
             best = p[KeyBest] ?: 0,
+            clean = p[KeyClean] ?: 0,
+            solvedVlsm = p[KeySolvedVlsm] ?: 0,
+            solvedAnalyze = p[KeySolvedAnalyze] ?: 0,
+            chaptersRead = p[KeyChapters].orEmpty().mapNotNull { it.toIntOrNull() }.toSet(),
         )
     }
 
@@ -57,10 +72,22 @@ class Prefs(private val context: Context) {
     suspend fun setKind(value: ExerciseKind) = context.dataStore.edit { it[KeyKind] = value.name }
     suspend fun setDifficulty(value: Difficulty) = context.dataStore.edit { it[KeyDifficulty] = value.name }
 
-    suspend fun recordResult(correct: Boolean) = context.dataStore.edit { p ->
-        if (correct) {
+    /**
+     * One finished exercise. `clean` means no stage needed a second go.
+     *
+     * Every exercise that reaches the end counts as solved; only a clean one
+     * extends the streak. Reading the walkthrough is help, and help is exactly
+     * what the streak is there to measure the absence of.
+     */
+    suspend fun recordResult(kind: ExerciseKind, clean: Boolean) = context.dataStore.edit { p ->
+        p[KeySolved] = (p[KeySolved] ?: 0) + 1
+        when (kind) {
+            ExerciseKind.Vlsm -> p[KeySolvedVlsm] = (p[KeySolvedVlsm] ?: 0) + 1
+            ExerciseKind.Analyze -> p[KeySolvedAnalyze] = (p[KeySolvedAnalyze] ?: 0) + 1
+        }
+        if (clean) {
             val streak = (p[KeyStreak] ?: 0) + 1
-            p[KeySolved] = (p[KeySolved] ?: 0) + 1
+            p[KeyClean] = (p[KeyClean] ?: 0) + 1
             p[KeyStreak] = streak
             p[KeyBest] = maxOf(p[KeyBest] ?: 0, streak)
         } else {
@@ -68,10 +95,22 @@ class Prefs(private val context: Context) {
         }
     }
 
+    /**
+     * Reaching the last page is what counts as having read a chapter. It is the
+     * only signal there is, and it is the honest one: the reader got there.
+     */
+    suspend fun markChapterRead(index: Int) = context.dataStore.edit { p ->
+        p[KeyChapters] = p[KeyChapters].orEmpty() + index.toString()
+    }
+
+    /** Clears the score. The chapters read are reading, not score, and stay. */
     suspend fun resetStats() = context.dataStore.edit { p ->
         p[KeySolved] = 0
         p[KeyStreak] = 0
         p[KeyBest] = 0
+        p[KeyClean] = 0
+        p[KeySolvedVlsm] = 0
+        p[KeySolvedAnalyze] = 0
     }
 
     private companion object {
@@ -82,5 +121,9 @@ class Prefs(private val context: Context) {
         val KeySolved = intPreferencesKey("solved")
         val KeyStreak = intPreferencesKey("streak")
         val KeyBest = intPreferencesKey("best")
+        val KeyClean = intPreferencesKey("clean")
+        val KeySolvedVlsm = intPreferencesKey("solvedVlsm")
+        val KeySolvedAnalyze = intPreferencesKey("solvedAnalyze")
+        val KeyChapters = stringSetPreferencesKey("chaptersRead")
     }
 }

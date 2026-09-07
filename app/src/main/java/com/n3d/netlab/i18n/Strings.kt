@@ -298,6 +298,7 @@ interface Strings {
     fun designerOverflow(count: Int): String
     val designerPlan: String
     val designerHostsFor: String
+    val designerTypeHosts: String
 
     // ---- learn ---------------------------------------------------------------
 
@@ -306,6 +307,9 @@ interface Strings {
     val learnStartHere: String
     val course: List<Chapter>
     fun chapterOf(index: Int, total: Int): String
+    fun pageOf(index: Int, total: Int): String
+    /** Badge on a chapter the reader has already paged to the end of. */
+    val chapterRead: String
     val chapterDone: String
     val chapterDoneBody: String
     val checkYourself: String
@@ -321,6 +325,11 @@ interface Strings {
     val settingDefaults: String
     val settingDefaultKind: String
     val settingDefaultDifficulty: String
+    val progressTitle: String
+    val progressChapters: String
+    val progressExercises: String
+    val progressClean: String
+    val progressNone: String
     val settingStats: String
     val settingResetStats: String
     val settingResetStatsHint: String
