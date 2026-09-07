@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.n3d.netlab.AppViewModel
+import com.n3d.netlab.BuildConfig
 import com.n3d.netlab.core.Difficulty
 import com.n3d.netlab.core.ExerciseKind
 import com.n3d.netlab.data.ThemeMode
@@ -55,6 +56,8 @@ fun SettingsScreen(vm: AppViewModel) {
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
+            item { AccountCard(vm, s) }
+
             item {
                 NeuCard {
                     SectionLabel(s.settingLanguage)
@@ -125,9 +128,9 @@ fun SettingsScreen(vm: AppViewModel) {
                             Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly,
                         ) {
-                            BigStat(s.labelSolved, vm.settings.solved.toString())
-                            BigStat(s.labelStreak, vm.settings.streak.toString(), accent = true)
-                            BigStat(s.labelBest, vm.settings.best.toString())
+                            BigStat(s.labelSolved, vm.progress.solved.toString())
+                            BigStat(s.labelStreak, vm.progress.streak.toString(), accent = true)
+                            BigStat(s.labelBest, vm.progress.best.toString())
                         }
                     }
                     Spacer(Modifier.height(14.dp))
@@ -150,7 +153,11 @@ fun SettingsScreen(vm: AppViewModel) {
                         color = neu.dim,
                     )
                     Spacer(Modifier.height(8.dp))
-                    Text("NetLab 1.0", style = NeuType.Mono, color = neu.faint)
+                    Text(
+                        "NetLab ${BuildConfig.VERSION_NAME} · netlab.n3d-store.com",
+                        style = NeuType.Mono,
+                        color = neu.faint,
+                    )
                 }
             }
         }
@@ -198,11 +205,11 @@ fun SettingsScreen(vm: AppViewModel) {
 @Composable
 private fun ProgressCard(vm: AppViewModel, s: Strings) {
     val neu = LocalNeu.current
-    val settings = vm.settings
-    val chapters = settings.chaptersRead.count { it in s.course.indices }
+    val progress = vm.progress
+    val chapters = progress.chapters.count { it in s.course.indices }
     NeuCard {
         SectionLabel(s.progressTitle)
-        if (chapters == 0 && settings.solved == 0) {
+        if (chapters == 0 && progress.solved == 0) {
             Text(s.progressNone, style = NeuType.Small, color = neu.faint)
             return@NeuCard
         }
@@ -214,11 +221,15 @@ private fun ProgressCard(vm: AppViewModel, s: Strings) {
         ) {
             Column {
                 InfoRow(s.progressChapters, "$chapters / ${s.course.size}")
-                InfoRow(s.progressExercises, s.num(settings.solved))
-                InfoRow(s.progressClean, s.num(settings.clean))
-                InfoRow(s.kindVlsm, s.num(settings.solvedVlsm))
-                InfoRow(s.kindAnalyze, s.num(settings.solvedAnalyze))
+                InfoRow(s.progressExercises, s.num(progress.solved))
+                InfoRow(s.progressClean, s.num(progress.clean))
+                InfoRow(s.kindVlsm, s.num(progress.vlsm))
+                InfoRow(s.kindAnalyze, s.num(progress.analyze))
             }
+        }
+        if (vm.account == null) {
+            Spacer(Modifier.height(10.dp))
+            Text(s.accountGuest, style = NeuType.Small, color = neu.faint)
         }
     }
 }

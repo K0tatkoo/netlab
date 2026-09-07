@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Everything is computed on-device from integers. The app has no network
-         permission at all and cannot phone anywhere, by design. -->
+    <!-- The teaching is all on-device arithmetic and needs no network at any
+         point. This is here for one thing only: signing in to an optional
+         netlab.n3d-store.com account and keeping that account's progress in
+         step across devices. Everything works with it switched off. -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"

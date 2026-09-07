@@ -182,7 +182,7 @@ private fun ExerciseHeader(vm: AppViewModel, s: Strings) {
             )
             Spacer(Modifier.width(10.dp))
             Text(
-                "${s.labelStreak.uppercase()} ${vm.settings.streak}",
+                "${s.labelStreak.uppercase()} ${vm.progress.streak}",
                 style = NeuType.Small.copy(fontWeight = FontWeight.Bold),
                 color = neu.accent,
                 maxLines = 1,

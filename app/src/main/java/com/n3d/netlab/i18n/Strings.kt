@@ -337,4 +337,48 @@ interface Strings {
     val aboutBody: String
     val languageEnglish: String
     val languageCzech: String
+
+    // ---- account -------------------------------------------------------------
+
+    val accountTitle: String
+    val accountGuest: String
+    val accountGuestBody: String
+    val accountSignedInAs: String
+    val actionSignIn: String
+    val actionRegister: String
+    val actionSignOut: String
+    val fieldEmail: String
+    val fieldPassword: String
+    val fieldName: String
+    val fieldNameHint: String
+    val passwordHint: String
+    val authHaveAccount: String
+    val authNoAccount: String
+    val authWorking: String
+    val authSyncedIn: String
+    val authSignedOut: String
+
+    // ---- two-factor ----------------------------------------------------------
+
+    val mfaTitle: String
+    fun mfaBody(email: String): String
+    val mfaWhy: String
+    val fieldCode: String
+    val actionVerify: String
+    val actionResend: String
+    val actionUseAnother: String
+    val mfaResent: String
+    val mfaSpam: String
+
+    // ---- password reset ------------------------------------------------------
+
+    val forgotPassword: String
+    val resetTitle: String
+    val resetBody: String
+    val actionSendReset: String
+    val actionBackToSignIn: String
+    fun resetSent(email: String): String
+
+    /** Server error codes, in the reader's own words. */
+    fun authError(code: String): String
 }

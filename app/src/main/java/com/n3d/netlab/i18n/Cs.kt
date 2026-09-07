@@ -510,7 +510,60 @@ object Cs : Strings {
     override val settingResetStats = "Vynulovat statistiku"
     override val settingResetStatsHint = "Smaže počet vyřešených cvičení i obě série."
     override val settingAbout = "O aplikaci"
-    override val aboutBody = "NetLab — procvičování dělení IPv4 sítí a VLSM. Všechno se počítá přímo v telefonu; aplikace nemá oprávnění k síti a nikam nic neposílá."
+    override val aboutBody = "NetLab — procvičování dělení IPv4 sítí a VLSM. Každé číslo se počítá přímo v telefonu a aplikace funguje i bez signálu; síť se použije jen k přihlášení a k srovnání postupu s netlab.n3d-store.com."
     override val languageEnglish = "English"
     override val languageCzech = "Čeština"
+
+    override val accountTitle = "Účet"
+    override val accountGuest = "Nepřihlášen"
+    override val accountGuestBody =
+        "Postup se drží jen v tomhle telefonu. Přihlas se a bude tě provázet na každém zařízení."
+    override val accountSignedInAs = "Přihlášen jako"
+    override val actionSignIn = "Přihlásit se"
+    override val actionRegister = "Založit účet"
+    override val actionSignOut = "Odhlásit se"
+    override val fieldEmail = "E-mail"
+    override val fieldPassword = "Heslo"
+    override val fieldName = "Zobrazované jméno"
+    override val fieldNameHint = "Nepovinné — ukáže se u účtu."
+    override val passwordHint = "Aspoň 8 znaků."
+    override val authHaveAccount = "Už máš účet? Přihlas se"
+    override val authNoAccount = "Ještě nemáš účet? Založ si ho"
+    override val authWorking = "Pracuji…"
+    override val authSyncedIn = "Přihlášeno. Postup z tohohle telefonu je přidaný k účtu."
+    override val authSignedOut = "Odhlášeno. Postup zůstává v telefonu."
+
+    override val mfaTitle = "Mrkni do e-mailu"
+    override fun mfaBody(email: String) =
+        "Poslali jsme šestimístný kód na $email. Platí 10 minut."
+    override val mfaWhy =
+        "Kód je potřeba při každém přihlášení, takže samotné heslo do účtu nestačí."
+    override val fieldCode = "Kód"
+    override val actionVerify = "Přihlásit se"
+    override val actionResend = "Poslat nový kód"
+    override val actionUseAnother = "Použít jiný e-mail"
+    override val mfaResent = "Nový kód je na cestě."
+    override val mfaSpam = "Nic nepřišlo? Mrkni do spamu — chodí to z e-mailu Nebula 3D."
+
+    override val forgotPassword = "Zapomenuté heslo?"
+    override val resetTitle = "Obnovení hesla"
+    override val resetBody = "Napiš adresu svého účtu a pošleme ti na ni odkaz."
+    override val actionSendReset = "Poslat odkaz"
+    override val actionBackToSignIn = "Zpět na přihlášení"
+    override fun resetSent(email: String) =
+        "Pokud k adrese $email existuje účet, odkaz je na cestě. Otevři ho v prohlížeči — platí hodinu a dá se použít jednou."
+
+    override fun authError(code: String) = when (code) {
+        "email" -> "Tohle nevypadá jako e-mailová adresa."
+        "password" -> "Heslo musí mít aspoň 8 znaků."
+        "taken" -> "Účet s tímhle e-mailem už existuje."
+        "credentials" -> "Špatný e-mail nebo heslo."
+        "rate" -> "Příliš mnoho pokusů. Počkej pár minut a zkus to znovu."
+        "code" -> "Tenhle kód nesedí. Zkontroluj e-mail a zkus to znovu."
+        "expired" -> "Kódu vypršela platnost. Nech si poslat nový."
+        "attempts" -> "Moc špatných kódů. Začni znovu a pošleme nový."
+        "mail" -> "E-mail se teď nepodařilo odeslat. Zkus to za minutu."
+        "network" -> "Server je nedostupný. Zkus to znovu."
+        else -> "Něco se pokazilo. Zkus to znovu."
+    }
 }

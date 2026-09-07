@@ -86,7 +86,7 @@ fun LearnScreen(vm: AppViewModel) {
             onRead = { vm.markChapterRead(openChapter) },
         )
     } else {
-        ChapterList(s, read = vm.settings.chaptersRead, onOpen = { openChapter = it })
+        ChapterList(s, read = vm.progress.chapters, onOpen = { openChapter = it })
     }
 }
 

@@ -15,8 +15,8 @@ android {
         // Below that every card would render with hard edges.
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
     }
 
     buildTypes {
@@ -45,6 +45,9 @@ android {
 
     buildFeatures {
         compose = true
+        // So the About card and the API's User-Agent both read the version
+        // from one place instead of drifting apart.
+        buildConfig = true
     }
 
     packaging {
@@ -77,4 +80,9 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation("junit:junit:4.13.2")
+    // Android stubs org.json out of the unit-test classpath, so the real
+    // implementation is added here: the progress blob is the one thing this
+    // app and the website have to agree on byte for byte, and a codec that
+    // cannot be tested is a codec nobody checks.
+    testImplementation("org.json:json:20240303")
 }

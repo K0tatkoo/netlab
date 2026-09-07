@@ -21,6 +21,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -217,6 +219,8 @@ fun NeuTextField(
     minHeight: Dp = 52.dp,
     textStyle: TextStyle = NeuType.Body,
     accent: Color? = null,
+    /** Dots instead of the characters, for a password. */
+    masked: Boolean = false,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val neu = LocalNeu.current
@@ -250,6 +254,8 @@ fun NeuTextField(
                     textStyle = textStyle.copy(color = accent ?: neu.text),
                     cursorBrush = SolidColor(neu.accent),
                     keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                    visualTransformation =
+                        if (masked) PasswordVisualTransformation() else VisualTransformation.None,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

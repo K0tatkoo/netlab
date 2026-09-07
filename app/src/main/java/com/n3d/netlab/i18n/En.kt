@@ -488,7 +488,60 @@ object En : Strings {
     override val settingResetStats = "Reset statistics"
     override val settingResetStatsHint = "Clears the solved count and both streaks."
     override val settingAbout = "About"
-    override val aboutBody = "NetLab — IPv4 subnetting and VLSM practice. Everything is worked out on the device; the app has no network permission and sends nothing anywhere."
+    override val aboutBody = "NetLab — IPv4 subnetting and VLSM practice. Every number is worked out on the device and the app works with no signal at all; the network is used only to sign in and to keep your progress in step with netlab.n3d-store.com."
     override val languageEnglish = "English"
     override val languageCzech = "Čeština"
+
+    override val accountTitle = "Account"
+    override val accountGuest = "Not signed in"
+    override val accountGuestBody =
+        "Progress is kept on this phone only. Sign in and it follows you to any device."
+    override val accountSignedInAs = "Signed in as"
+    override val actionSignIn = "Sign in"
+    override val actionRegister = "Create account"
+    override val actionSignOut = "Sign out"
+    override val fieldEmail = "Email"
+    override val fieldPassword = "Password"
+    override val fieldName = "Display name"
+    override val fieldNameHint = "Optional — shown on your account."
+    override val passwordHint = "At least 8 characters."
+    override val authHaveAccount = "Already have an account? Sign in"
+    override val authNoAccount = "No account yet? Create one"
+    override val authWorking = "Working…"
+    override val authSyncedIn = "Signed in. Your progress from this phone has been merged in."
+    override val authSignedOut = "Signed out. Progress stays on this phone."
+
+    override val mfaTitle = "Check your email"
+    override fun mfaBody(email: String) =
+        "We sent a six-digit code to $email. It expires in 10 minutes."
+    override val mfaWhy =
+        "Every sign-in needs the code, so knowing your password is not enough to get into your account."
+    override val fieldCode = "Code"
+    override val actionVerify = "Sign in"
+    override val actionResend = "Send a new code"
+    override val actionUseAnother = "Use a different email"
+    override val mfaResent = "A new code is on its way."
+    override val mfaSpam = "Nothing yet? Check the spam folder — it comes from the Nebula 3D mailbox."
+
+    override val forgotPassword = "Forgot your password?"
+    override val resetTitle = "Reset your password"
+    override val resetBody = "Type the address on your account and we will email you a link."
+    override val actionSendReset = "Email me a link"
+    override val actionBackToSignIn = "Back to sign in"
+    override fun resetSent(email: String) =
+        "If $email has an account, a link is on its way. Open it in your browser — it works once and expires in an hour."
+
+    override fun authError(code: String) = when (code) {
+        "email" -> "That does not look like an email address."
+        "password" -> "The password needs at least 8 characters."
+        "taken" -> "There is already an account with that email."
+        "credentials" -> "Wrong email or password."
+        "rate" -> "Too many attempts. Wait a few minutes and try again."
+        "code" -> "That code is not right. Check the email and try again."
+        "expired" -> "That code has expired. Ask for a new one."
+        "attempts" -> "Too many wrong codes. Start again and we will send a new one."
+        "mail" -> "We could not send the email just now. Try again in a minute."
+        "network" -> "Could not reach the server. Try again."
+        else -> "Something went wrong. Try again."
+    }
 }

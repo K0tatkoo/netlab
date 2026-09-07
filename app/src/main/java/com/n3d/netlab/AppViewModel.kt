@@ -25,12 +25,19 @@ import com.n3d.netlab.core.VlsmStage
 import com.n3d.netlab.core.VlsmTask
 import com.n3d.netlab.core.fields
 import com.n3d.netlab.core.orderedLargestFirst
+import com.n3d.netlab.data.Account
+import com.n3d.netlab.data.ApiException
+import com.n3d.netlab.data.NetLabApi
 import com.n3d.netlab.data.Prefs
+import com.n3d.netlab.data.Progress
+import com.n3d.netlab.data.ProgressRules
 import com.n3d.netlab.data.Settings
 import com.n3d.netlab.data.ThemeMode
 import com.n3d.netlab.i18n.Lang
 import com.n3d.netlab.i18n.Strings
 import com.n3d.netlab.i18n.stringsFor
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** The two things the app does. Everything else is a sheet over one of them. */
@@ -39,11 +46,55 @@ enum class AppMode { Learn, Exercise }
 /** Full-screen panels that are not one of the two modes. */
 enum class Sheet { None, Calculator, Settings }
 
+/** Which account form the Settings screen is showing. */
+enum class AuthMode { SignIn, Register, Forgot }
+
+/**
+ * Something that went well enough to say so. Kept as a value rather than a
+ * finished sentence so it follows the language switch like everything else.
+ */
+enum class AuthNotice { SignedOut, SignedIn, CodeResent, ResetSent }
+
+private val EMAIL = Regex("""^[^@\s]+@[^@\s]+\.[^@\s]+$""")
+private const val SYNC_DEBOUNCE_MS = 900L
+
 class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private val prefs = Prefs(app.applicationContext)
 
+    /** Reads the token out of state on every call, so a fresh cookie is picked
+     *  up without rebuilding the client. */
+    private val api = NetLabApi { sessionToken }
+
     var settings by mutableStateOf(Settings(lang = Lang.En))
+        private set
+
+    // ---- account -------------------------------------------------------------
+
+    private var sessionToken: String? = null
+
+    /** Null while signed out, which is a perfectly normal way to use the app. */
+    var account by mutableStateOf<Account?>(null)
+        private set
+
+    var progress by mutableStateOf(Progress())
+        private set
+
+    var authMode by mutableStateOf(AuthMode.SignIn)
+        private set
+    var authBusy by mutableStateOf(false)
+        private set
+
+    /** A server error code — `credentials`, `rate`, `network` — not a sentence. */
+    var authError by mutableStateOf<String?>(null)
+        private set
+    var authNotice by mutableStateOf<AuthNotice?>(null)
+        private set
+
+    /** The half-finished sign-in: a code has been emailed and not yet typed. */
+    var challenge by mutableStateOf<String?>(null)
+        private set
+    var challengeEmail by mutableStateOf("")
         private set
 
     val strings: Strings get() = stringsFor(settings.lang)
@@ -121,13 +172,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         viewModelScope.launch {
-            prefs.flow.collect { incoming ->
+            prefs.flow.collect { stored ->
                 val settingsChanged = hydrated &&
-                    (incoming.kind != settings.kind || incoming.difficulty != settings.difficulty)
-                settings = incoming
+                    (stored.settings.kind != settings.kind || stored.settings.difficulty != settings.difficulty)
+                settings = stored.settings
+                sessionToken = stored.token
+                account = stored.account
+                progress = if (stored.account != null) stored.cached else stored.guest
                 if (!hydrated) {
                     hydrated = true
                     newExercise()
+                    // After the first paint's worth of state, never before: the
+                    // app is completely usable signed out, so nothing waits on
+                    // a network that may not be there.
+                    restoreSession()
                 } else if (settingsChanged) {
                     newExercise()
                 }
@@ -141,12 +199,266 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setTheme(value: ThemeMode) { viewModelScope.launch { prefs.setTheme(value) } }
     fun setKind(value: ExerciseKind) { viewModelScope.launch { prefs.setKind(value) } }
     fun setDifficulty(value: Difficulty) { viewModelScope.launch { prefs.setDifficulty(value) } }
-    fun resetStats() { viewModelScope.launch { prefs.resetStats() } }
+
+    // ---- progress ------------------------------------------------------------
+
+    /**
+     * Local first, server second, and that order is deliberate: somebody who
+     * never signs in still keeps their chapters and their streak, and somebody
+     * who does but whose signal drops still gets credited for the exercise they
+     * just finished.
+     */
+    private fun updateProgress(mutate: (Progress) -> Progress) {
+        val next = mutate(progress).copy(updatedAt = System.currentTimeMillis())
+        if (next == progress) return
+        // Set here rather than waiting for the store to echo it back, so a
+        // ticked chapter appears the instant it is earned.
+        progress = next
+        val id = account?.id
+        viewModelScope.launch { prefs.writeProgress(next, id) }
+        if (id != null) queueSync(next)
+    }
+
+    fun resetStats() = updateProgress { it.scoreCleared() }
 
     /** Called by the reader when a chapter's last page comes into view. */
     fun markChapterRead(index: Int) {
-        if (index in settings.chaptersRead) return
-        viewModelScope.launch { prefs.markChapterRead(index) }
+        if (index in progress.chapters) return
+        updateProgress { it.withChapterRead(index) }
+    }
+
+    // ---- account -------------------------------------------------------------
+
+    fun selectAuthMode(value: AuthMode) {
+        authError = null
+        // Toggling between signing in and registering keeps whatever was last
+        // said — "Signed out." is still true on both. Stepping into or out of
+        // the reset form does not, because that message was about the form
+        // being left behind.
+        if (value == AuthMode.Forgot || authMode == AuthMode.Forgot) authNotice = null
+        authMode = value
+    }
+
+    /** Abandons a half-finished sign-in and goes back to the email box. */
+    fun cancelChallenge() {
+        challenge = null
+        authError = null
+        authNotice = null
+    }
+
+    /**
+     * Is the session still good?
+     *
+     * A refusal signs the app out locally; anything else — no signal, the server
+     * down, a tunnel hiccup — leaves it exactly as it was. A phone is offline
+     * far more often than a browser tab is, and being thrown out of an account
+     * because a train went into a tunnel would be absurd.
+     */
+    private fun restoreSession() {
+        if (sessionToken == null) return
+        viewModelScope.launch {
+            try {
+                val live = api.me()
+                if (live == null) {
+                    prefs.clearSession()
+                } else {
+                    adopt(live.token, live.account, live.progress)
+                }
+            } catch (e: ApiException) {
+                if (e.code != "network") prefs.clearSession()
+            }
+        }
+    }
+
+    /**
+     * Step one: the password is checked and a code is emailed.
+     *
+     * Nothing is adopted here and no session exists yet, deliberately — a
+     * stolen password on its own earns somebody a challenge token and an email
+     * landing in the real owner's inbox.
+     */
+    fun beginSignIn(email: String, password: String, name: String) {
+        if (authBusy) return
+        val address = email.trim()
+        // Checked here as well as on the server so the two common mistakes cost
+        // no round trip and are answered in the reader's own language.
+        if (!EMAIL.matches(address)) { authError = "email"; return }
+        if (password.length < 8) { authError = "password"; return }
+
+        val registering = authMode == AuthMode.Register
+        authBusy = true
+        authError = null
+        authNotice = null
+        viewModelScope.launch {
+            try {
+                val started = if (registering) {
+                    api.register(address, password, name.trim().take(40), settings.lang.code)
+                } else {
+                    api.login(address, password, settings.lang.code)
+                }
+                challenge = started.token
+                challengeEmail = started.email
+            } catch (e: ApiException) {
+                authError = e.code
+            }
+            authBusy = false
+        }
+    }
+
+    /**
+     * Step two: the emailed code, which is what creates the session.
+     *
+     * So this is also where whatever was earned signed out gets folded into the
+     * account — and the guest copy is then deleted, which is what makes *adding*
+     * the counters right rather than double-counting them.
+     */
+    fun verifyCode(code: String) {
+        val token = challenge ?: return
+        if (authBusy) return
+        if (code.length < 6) { authError = "code"; return }
+
+        authBusy = true
+        authError = null
+        authNotice = null
+        viewModelScope.launch {
+            try {
+                val guest = progress
+                val session = api.verify(token, code)
+                var earned = session.progress
+                // A failed merge keeps the guest copy: it is still theirs, and
+                // the next sign-in will offer it again.
+                val folded = guest.isEmpty ||
+                    runCatching { earned = api.mergeProgress(guest) }.isSuccess
+                // Adopted before the guest copy goes, so the numbers on screen
+                // step straight from the old total to the new one instead of
+                // through zero between two writes.
+                adopt(session.token, session.account, earned)
+                if (folded) prefs.clearGuestProgress()
+                challenge = null
+                authNotice = AuthNotice.SignedIn
+            } catch (e: ApiException) {
+                authError = e.code
+                // An expired or burnt-out challenge can never be retried, so the
+                // form goes back to the start rather than leaving a code box
+                // that cannot work.
+                if (e.code == "expired" || e.code == "attempts") challenge = null
+            }
+            authBusy = false
+        }
+    }
+
+    fun resendCode() {
+        val token = challenge ?: return
+        if (authBusy) return
+        authBusy = true
+        authError = null
+        authNotice = null
+        viewModelScope.launch {
+            try {
+                val started = api.resend(token, challengeEmail, settings.lang.code)
+                challenge = started.token
+                authNotice = AuthNotice.CodeResent
+            } catch (e: ApiException) {
+                authError = e.code
+                if (e.code == "expired") challenge = null
+            }
+            authBusy = false
+        }
+    }
+
+    /**
+     * Asking for a reset link.
+     *
+     * The link arrives by email and opens the website, because setting a
+     * password is a thing you do once from wherever you happen to be reading
+     * the email. The answer is the same whether or not the address has an
+     * account, so this reports only that something is on its way if it does.
+     */
+    fun requestPasswordReset(email: String) {
+        if (authBusy) return
+        val address = email.trim()
+        if (!EMAIL.matches(address)) { authError = "email"; return }
+
+        authBusy = true
+        authError = null
+        authNotice = null
+        viewModelScope.launch {
+            try {
+                api.requestReset(address, settings.lang.code)
+                challengeEmail = address
+                authNotice = AuthNotice.ResetSent
+            } catch (e: ApiException) {
+                authError = e.code
+            }
+            authBusy = false
+        }
+    }
+
+    fun signOut() {
+        if (authBusy) return
+        authBusy = true
+        viewModelScope.launch {
+            // The token is dead to this device either way, so a failed call is
+            // not a reason to stay signed in on the phone.
+            runCatching { api.logout() }
+            prefs.clearSession()
+            authMode = AuthMode.SignIn
+            authError = null
+            authNotice = AuthNotice.SignedOut
+            challenge = null
+            authBusy = false
+        }
+    }
+
+    private suspend fun adopt(token: String?, who: Account, remote: Progress) {
+        // The copy on the device can be ahead of the server if the last sync
+        // failed, so take whichever was written later rather than trusting the
+        // wire blindly.
+        val local = progress
+        val localWins = account?.id == who.id && local.updatedAt > remote.updatedAt
+        val keep = if (localWins) local else remote
+        prefs.saveSession(token, who, keep)
+        // Being ahead means a save never made it up — most likely the app was
+        // killed while it was still inside the sync debounce. Push it now,
+        // rather than leaving the account behind until the next exercise.
+        if (localWins) queueSync(keep)
+    }
+
+    // ---- syncing -------------------------------------------------------------
+
+    private var pendingSync: Progress? = null
+    private var syncArmed = false
+    private var syncJob: Job? = null
+
+    /**
+     * Debounced, because finishing an exercise writes progress once but paging
+     * through a chapter writes it several times in a few seconds — and because
+     * a save that fails must not take the next one down with it.
+     */
+    private fun queueSync(next: Progress) {
+        pendingSync = next
+        if (syncArmed) return
+        syncArmed = true
+        syncJob = viewModelScope.launch {
+            delay(SYNC_DEBOUNCE_MS)
+            syncArmed = false
+            val payload = pendingSync ?: return@launch
+            pendingSync = null
+            // Stays on the device if it fails; the next successful save carries
+            // it up, because every save sends the whole blob.
+            runCatching { api.saveProgress(payload) }
+        }
+    }
+
+    /** The app going to the background mid-debounce would otherwise drop the
+     *  last save of a session. */
+    fun flushSync() {
+        val payload = pendingSync ?: return
+        if (account == null) return
+        pendingSync = null
+        syncArmed = false
+        syncJob?.cancel()
+        viewModelScope.launch { runCatching { api.saveProgress(payload) } }
     }
 
     // ---- exercise flow -------------------------------------------------------
@@ -332,9 +644,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         resetStageFlags()
         if (stageDone && !scored) {
             scored = true
-            val clean = mistakes == 0
             val kind = settings.kind
-            viewModelScope.launch { prefs.recordResult(kind, clean) }
+            updateProgress { it.withResult(kind, clean = mistakes == 0) }
         }
     }
 
