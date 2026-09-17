@@ -36,6 +36,7 @@ import com.n3d.netlab.data.ThemeMode
 import com.n3d.netlab.i18n.Lang
 import com.n3d.netlab.i18n.Strings
 import com.n3d.netlab.i18n.stringsFor
+import com.n3d.netlab.update.UpdateManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -61,6 +62,14 @@ private const val SYNC_DEBOUNCE_MS = 900L
 class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private val prefs = Prefs(app.applicationContext)
+
+    /**
+     * The app looking after its own version. See update/Updater.kt.
+     *
+     * The launch check is silent and rate-limited to once a day: if there is
+     * nothing new, or the phone is offline, nothing about this screen changes.
+     */
+    val updates = UpdateManager(app).also { it.checkOnLaunch() }
 
     /** Reads the token out of state on every call, so a fresh cookie is picked
      *  up without rebuilding the client. */

@@ -108,9 +108,29 @@ so the tests also assert that the English and Czech chapters have the same
 pages carrying the same block types in the same order — a paragraph added to one
 language and not the other is a test failure, not something a reader discovers.
 
+## Updating itself
+
+Not being on Play means nothing would otherwise tell anybody a new version
+exists. `update/Updater.kt` — the same file in all five published apps, differing
+only in the slug and the package name — asks
+`n3d-store.com/api/apps/<slug>/update` what the newest build is, downloads
+`/apk/<slug>.apk` if it is newer, checks it against the SHA-256 the store
+published *and* against this app's own signing certificate, and hands it to
+Android's `PackageInstaller`, which shows its own confirmation.
+
+The checksum is what makes it safe: the store hashes the APK on disk at boot and
+serves that digest beside the URL, the download is hashed as it streams, and a
+file that does not match is deleted rather than offered. A truncated download
+and a substituted one fail identically.
+
+It also looks by itself, at most once a day, silently — no spinner, and a
+failed check at launch leaves nothing on the screen. That is switchable.
+
 ## Notes
 
-- No network permission. Everything is computed on the device.
+- Every number is computed on the device. The network is used for three
+  things only, all optional: signing in, syncing progress, and checking for a
+  new version of the app.
 - Language defaults to Czech on a Czech phone, then follows the setting.
 - Prefixes may be answered as `/26`, `26` or `255.255.255.192` — all three are
   marked correct.

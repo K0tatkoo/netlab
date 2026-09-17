@@ -4,6 +4,7 @@ import com.n3d.netlab.core.AnalyzeStage
 import com.n3d.netlab.core.AnalyzeStep
 import com.n3d.netlab.core.VlsmStage
 import com.n3d.netlab.core.VlsmStep
+import com.n3d.netlab.update.UpdateError
 
 enum class Lang(val code: String, val flag: String) {
     En("en", "EN"),
@@ -381,4 +382,27 @@ interface Strings {
 
     /** Server error codes, in the reader's own words. */
     fun authError(code: String): String
+
+    // ---- updates -------------------------------------------------------------
+
+    val updateTitle: String
+    val updateInstalled: String
+    val updateCheck: String
+    val updateChecking: String
+    val updateUpToDate: String
+    fun updateFound(version: String): String
+    fun updateDownload(size: String): String
+    val updateDownloading: String
+    val updateInstall: String
+    val updateOpening: String
+    val updateAllowTitle: String
+    val updateAllowBody: String
+    val updateAllow: String
+    val updateAuto: String
+    val updateAutoHint: String
+    val updateUnavailable: String
+    val actionLater: String
+
+    /** Why an update stopped, in the reader's own words. */
+    fun updateError(error: UpdateError): String
 }

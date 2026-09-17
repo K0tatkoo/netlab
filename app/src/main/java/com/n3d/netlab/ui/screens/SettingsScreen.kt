@@ -144,6 +144,8 @@ fun SettingsScreen(vm: AppViewModel) {
                 }
             }
 
+            item { UpdateCard(vm, s) }
+
             item {
                 NeuCard {
                     SectionLabel(s.settingAbout)

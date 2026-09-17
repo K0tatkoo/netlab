@@ -5,6 +5,7 @@ import com.n3d.netlab.core.AnalyzeStep
 import com.n3d.netlab.core.Ip
 import com.n3d.netlab.core.VlsmStage
 import com.n3d.netlab.core.VlsmStep
+import com.n3d.netlab.update.UpdateError
 
 object En : Strings {
 
@@ -488,7 +489,7 @@ object En : Strings {
     override val settingResetStats = "Reset statistics"
     override val settingResetStatsHint = "Clears the solved count and both streaks."
     override val settingAbout = "About"
-    override val aboutBody = "NetLab — IPv4 subnetting and VLSM practice. Every number is worked out on the device and the app works with no signal at all; the network is used only to sign in and to keep your progress in step with netlab.n3d-store.com."
+    override val aboutBody = "NetLab — IPv4 subnetting and VLSM practice. Every number is worked out on the device and the app works with no signal at all; the network is used only to sign in, to keep your progress in step with netlab.n3d-store.com, and to look for a new version of the app."
     override val languageEnglish = "English"
     override val languageCzech = "Čeština"
 
@@ -543,5 +544,44 @@ object En : Strings {
         "mail" -> "We could not send the email just now. Try again in a minute."
         "network" -> "Could not reach the server. Try again."
         else -> "Something went wrong. Try again."
+    }
+
+    override val updateTitle = "Updates"
+    override val updateInstalled = "Installed"
+    override val updateCheck = "Check for updates"
+    override val updateChecking = "Checking…"
+    override val updateUpToDate = "This is the newest version."
+    override fun updateFound(version: String) = "Version $version is out."
+    override fun updateDownload(size: String) =
+        if (size.isEmpty()) "Download and install" else "Download and install · $size"
+    override val updateDownloading = "Downloading…"
+    override val updateInstall = "Install"
+    override val updateOpening = "Opening Android's installer…"
+    override val updateAllowTitle = "One permission first"
+    override val updateAllowBody =
+        "The update is downloaded and checked. Android will not let an app install " +
+        "anything until you switch NetLab on under “Install unknown apps” — one " +
+        "switch, on the screen the button below opens."
+    override val updateAllow = "Open that setting"
+    override val updateAuto = "Look for updates by itself"
+    override val updateAutoHint =
+        "Once a day, and only the version number is asked for. Switch it off and this " +
+        "button is the only thing that ever checks."
+    override val updateUnavailable = "This build cannot replace itself."
+    override val actionLater = "Not now"
+
+    override fun updateError(error: UpdateError) = when (error) {
+        UpdateError.Network -> "Could not reach n3d-store.com. Check your connection and try again."
+        UpdateError.Server -> "The store answered with something unusable. Try again later."
+        UpdateError.Checksum ->
+            "The download did not match what the store published, so it was thrown away. " +
+            "Nothing was installed. Try again."
+        UpdateError.Signature ->
+            "That file is signed by a different key and can never replace this app. " +
+            "Nothing was installed."
+        UpdateError.Package -> "That file is a different app. Nothing was installed."
+        UpdateError.TooOld -> "The new version needs a newer Android than this phone runs."
+        UpdateError.Storage -> "Not enough room to download the update."
+        UpdateError.Install -> "Android refused the install."
     }
 }

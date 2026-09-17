@@ -5,6 +5,7 @@ import com.n3d.netlab.core.AnalyzeStep
 import com.n3d.netlab.core.Ip
 import com.n3d.netlab.core.VlsmStage
 import com.n3d.netlab.core.VlsmStep
+import com.n3d.netlab.update.UpdateError
 
 object Cs : Strings {
 
@@ -510,7 +511,7 @@ object Cs : Strings {
     override val settingResetStats = "Vynulovat statistiku"
     override val settingResetStatsHint = "Smaže počet vyřešených cvičení i obě série."
     override val settingAbout = "O aplikaci"
-    override val aboutBody = "NetLab — procvičování dělení IPv4 sítí a VLSM. Každé číslo se počítá přímo v telefonu a aplikace funguje i bez signálu; síť se použije jen k přihlášení a k srovnání postupu s netlab.n3d-store.com."
+    override val aboutBody = "NetLab — procvičování dělení IPv4 sítí a VLSM. Každé číslo se počítá přímo v telefonu a aplikace funguje i bez signálu; síť se použije jen k přihlášení, k srovnání postupu s netlab.n3d-store.com a k hledání nové verze aplikace."
     override val languageEnglish = "English"
     override val languageCzech = "Čeština"
 
@@ -565,5 +566,44 @@ object Cs : Strings {
         "mail" -> "E-mail se teď nepodařilo odeslat. Zkus to za minutu."
         "network" -> "Server je nedostupný. Zkus to znovu."
         else -> "Něco se pokazilo. Zkus to znovu."
+    }
+
+    override val updateTitle = "Aktualizace"
+    override val updateInstalled = "Nainstalováno"
+    override val updateCheck = "Zkontrolovat aktualizace"
+    override val updateChecking = "Kontroluji…"
+    override val updateUpToDate = "Tohle je nejnovější verze."
+    override fun updateFound(version: String) = "Vyšla verze $version."
+    override fun updateDownload(size: String) =
+        if (size.isEmpty()) "Stáhnout a nainstalovat" else "Stáhnout a nainstalovat · $size"
+    override val updateDownloading = "Stahuji…"
+    override val updateInstall = "Nainstalovat"
+    override val updateOpening = "Otevírám instalátor Androidu…"
+    override val updateAllowTitle = "Ještě jedno povolení"
+    override val updateAllowBody =
+        "Aktualizace je stažená a ověřená. Android nedovolí aplikaci nic nainstalovat, " +
+        "dokud NetLabu nezapneš „Instalace neznámých aplikací“ — jeden přepínač, na " +
+        "obrazovce, kterou otevře tlačítko níž."
+    override val updateAllow = "Otevřít nastavení"
+    override val updateAuto = "Hledat aktualizace sám"
+    override val updateAutoHint =
+        "Jednou denně a ptá se jen na číslo verze. Když to vypneš, zkontroluje se to " +
+        "jedině tímhle tlačítkem."
+    override val updateUnavailable = "Tenhle build se nedokáže přepsat sám."
+    override val actionLater = "Teď ne"
+
+    override fun updateError(error: UpdateError) = when (error) {
+        UpdateError.Network -> "Nepodařilo se spojit s n3d-store.com. Zkontroluj připojení a zkus to znovu."
+        UpdateError.Server -> "Server odpověděl něčím nepoužitelným. Zkus to později."
+        UpdateError.Checksum ->
+            "Stažený soubor neodpovídá tomu, co server zveřejnil, takže byl zahozen. " +
+            "Nic se nenainstalovalo. Zkus to znovu."
+        UpdateError.Signature ->
+            "Ten soubor je podepsaný jiným klíčem a tuhle aplikaci nikdy nahradit nemůže. " +
+            "Nic se nenainstalovalo."
+        UpdateError.Package -> "Ten soubor je jiná aplikace. Nic se nenainstalovalo."
+        UpdateError.TooOld -> "Nová verze potřebuje novější Android, než má tenhle telefon."
+        UpdateError.Storage -> "Není dost místa na stažení aktualizace."
+        UpdateError.Install -> "Android instalaci odmítl."
     }
 }

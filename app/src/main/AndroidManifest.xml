@@ -7,6 +7,14 @@
          step across devices. Everything works with it switched off. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!--
+      Installing an update the app downloaded itself. This is not a licence to
+      install silently: Android still shows its own confirmation, and the user
+      has to switch this app on under "Install unknown apps" before the prompt
+      will even appear. See update/Updater.kt.
+    -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
