@@ -141,3 +141,7 @@ failed check at launch leaves nothing on the screen. That is switchable.
 - `app/src/debug/java/com/n3d/netlab/Previews.kt` holds design previews for
   Android Studio's preview pane. They are not rendered from the command line —
   `com.android.compose.screenshot` discovers zero previews under AGP 8.13.
+
+## License
+
+MIT — see [LICENSE](LICENSE). Built by Danny ([K0tatkoo](https://github.com/K0tatkoo)); installable builds are on [n3d-store.com/apps](https://n3d-store.com/apps.html).
