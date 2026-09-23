@@ -9,6 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitHorizontalTouchSlopOrCancellation
+import androidx.compose.foundation.gestures.horizontalDrag
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -132,7 +134,14 @@ fun <T> NeuSegmented(
  * Press and drag are handled in one gesture loop rather than as a tap detector
  * plus a drag detector. Two detectors on one modifier fight over the first
  * pointer, which shows up as a tap near the knob doing nothing — the single
- * loop makes a press anywhere on the track jump the knob and keep tracking.
+ * loop makes a tap anywhere on the track jump the knob, and a drag track it.
+ *
+ * Nothing happens on touch-down, though. The calculator is a scrolling list,
+ * and a finger that lands on a slider on its way down the page is a scroll:
+ * the old loop set the value on the press and then held the gesture, so
+ * scrolling past a slider quietly changed it. Now the knob moves on a tap that
+ * lifts without moving, or once the finger has gone sideways past the touch
+ * slop — the same threshold at which the list claims a vertical movement.
  */
 @Composable
 fun NeuSlider(
@@ -170,14 +179,21 @@ fun NeuSlider(
                 .pointerInput(travel, enabled) {
                     if (!enabled) return@pointerInput
                     awaitEachGesture {
+                        fun at(x: Float) = ((x - knobPx / 2f) / travel).coerceIn(0f, 1f)
                         val down = awaitFirstDown(requireUnconsumed = false)
-                        callback(((down.position.x - knobPx / 2f) / travel).coerceIn(0f, 1f))
-                        down.consume()
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                            if (!change.pressed) break
-                            callback(((change.position.x - knobPx / 2f) / travel).coerceIn(0f, 1f))
+                        val drag = awaitHorizontalTouchSlopOrCancellation(down.id) { change, _ ->
+                            change.consume()
+                        }
+                        if (drag == null) {
+                            // Lifted without moving: a tap. Anything else means the
+                            // list took the gesture for a scroll.
+                            val up = currentEvent.changes.firstOrNull { it.id == down.id }
+                            if (up != null && !up.pressed && !up.isConsumed) callback(at(up.position.x))
+                            return@awaitEachGesture
+                        }
+                        callback(at(drag.position.x))
+                        horizontalDrag(drag.id) { change ->
+                            callback(at(change.position.x))
                             change.consume()
                         }
                     }
