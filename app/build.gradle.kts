@@ -28,8 +28,8 @@ android {
         // Below that every card would render with hard edges.
         minSdk = 29
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "1.2.1"
     }
 
     signingConfigs {
